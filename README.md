@@ -2,7 +2,7 @@
 
 Este repositório contém a infraestrutura base para um Pipeline de MLOps moderno, 100% conteinerizado usando Docker e `docker-compose`. Ele simula um ambiente de nuvem (como a AWS) localmente para garantir reprodutibilidade total nos projetos de engenharia de dados e ciência de dados.
 
-## 🏗 Arquitetura Fase 1
+## Arquitetura Fase 1
 
 Nesta primeira fase, configuramos a base de dados em formato Data Lake house (desacoplando armazenamento de processamento legal) e o ambiente de desenvolvimento.
 
@@ -28,7 +28,7 @@ Os principais componentes são:
 
 ---
 
-## 🚀 Como Executar
+## Como Executar
 
 ### 1. Pré-requisitos
 Certifique-se de que sua máquina possui instalados:
@@ -42,7 +42,7 @@ Pelo terminal, navegue até a pasta do projeto (onde está o `docker-compose.yml
 docker compose up -d --build
 ```
 
-> 💡 *Na primeira vez, o Docker pode demorar um pouco para baixar as imagens oficiais do MinIO, Trino, Postgres e Jupyter.*
+> *Na primeira vez, o Docker pode demorar um pouco para baixar as imagens oficiais do MinIO, Trino, Postgres e Jupyter.*
 
 ### 3. Acessando os Serviços
 
@@ -62,7 +62,7 @@ Com os serviços rodando (`docker compose ps`), você poderá acessá-los atrav�
 
 ---
 
-## 🧪 Exemplos de Uso
+## Exemplos de Uso
 
 Dentro do seu JupyterLab, na aba de arquivos (lado esquerdo), repare na pasta conectada contendo exemplos práticos:
 
@@ -75,7 +75,7 @@ Isso significa que **seu ambiente de estudos está a salvo mesmo se você matar 
 
 ---
 
-## 🛑 Como Desligar o Ambiente
+## Como Desligar o Ambiente
 
 Para parar o processamento local (sem deletar recursos ou dados):
 
