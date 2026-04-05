@@ -7,7 +7,8 @@ RUN pip install --no-cache-dir \
     mlflow==2.11.3 \
     scikit-learn \
     pyyaml \
-    pandas
+    pandas \
+    pyarrow
 
 COPY train.py .
 

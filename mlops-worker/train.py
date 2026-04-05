@@ -30,10 +30,10 @@ def train_contract(contract_key):
     model_name = contract['metadata']['name']
     mlflow.set_experiment(model_name)
     
-    # 1. Extraction from DWH/Landing-Zone
-    print(f"Extraindo dados brutos de: {contract['data']['file_name']}")
-    data_resp = s3_client.get_object(Bucket=contract['data']['bucket'], Key=contract['data']['file_name'])
-    df = pd.read_csv(io.BytesIO(data_resp['Body'].read())).dropna()
+    print(f"Extraindo features curadas da Feature Store Offline (Iceberg/Trusted Layer)...")
+    table_name = contract['data']['file_name'].replace('.csv', '')
+    data_resp = s3_client.get_object(Bucket='trusted', Key=f"{table_name}/{table_name}_trusted.parquet")
+    df = pd.read_parquet(io.BytesIO(data_resp['Body'].read()))
     
     target_col = contract['label']['column']
     y = df[target_col]
@@ -85,8 +85,8 @@ def train_contract(contract_key):
             print(f"F1 The King (Atual Produção): {f1_campeao}")
             print(f"F1 The Usurper (Acabou de Treinar): {f1}")
             
-            if f1 > f1_campeao:
-                 print("O DESAFIANTE DERRUBOU O CAMPEAO! Deploy liberado para nova subida.")
+            if f1 >= f1_campeao:
+                 print("O DESAFIANTE EMPATOU OU DERRUBOU O CAMPEAO! Deploy liberado para nova subida.")
                  client.set_registered_model_alias(name=model_name, alias="Champion", version=model_details.version)
                  client.set_model_version_tag(name=model_name, version=model_details.version, key="Stage", value="Promoted-via-Airflow-Worker")
             else:

@@ -198,6 +198,29 @@ services:
       dockerfile: Dockerfile
     command: /bin/true
 
+  fastapi-server:
+    image: mlops-api:latest
+    container_name: fastapi-server
+    ports:
+      - "8000:8000"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    depends_on:
+      - mlflow
+      - minio
+    networks:
+      - mlops-net
+
+  builder-mlops-api:
+    image: mlops-api:latest
+    build:
+      context: ./mlops-api
+      dockerfile: Dockerfile
+    command: /bin/true
+
 networks:
   mlops-net:
     name: mlops-net
