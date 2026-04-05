@@ -189,6 +189,14 @@ services:
       dockerfile: Dockerfile
     command: /bin/true
 
+  # Data Engineering Auto-Builder
+  builder-data-worker:
+    image: worker-data:latest
+    build:
+      context: ./mlops-data-worker
+      dockerfile: Dockerfile
+    command: /bin/true
+
 networks:
   mlops-net:
     name: mlops-net
