@@ -94,4 +94,15 @@ docker compose down
 
 ---
 
-*A Fase 2 (Orquestração MLOps com Airflow e MLFlow) já teve seus buckets preparados e integrados. Brevemente os serviços estarão acoplados aqui.*
+## Fase 4: Rastreabilidade e Model Registry (MLflow)
+
+O ecossistema evoluiu oficialmente para a Fase 4 com a integração do **MLflow**, atuando como seu servidor central de métricas MLOps:
+
+- **Tracking Relacional:** Todos os hiperparâmetros e métricas de treino (Acurácia, F1-Score) correm do Jupyter diretamente para o banco de dados seguro do Postgres (dividindo espaço com nosso Metastore).
+- **Publicação Automatizada:** Em vez de salvar `.pickles` na mão, os Cientistas agora empacotam e exportam as versões validadas dos Modelos via API. Os modelos assinam seus *schemas* e sobem blindados para o Bucket S3 `mlflow-artifacts`.
+
+- **Acesso ao Dashboard do MLflow:** [http://localhost:5000](http://localhost:5000)
+
+---
+
+*A Fase 5 (Orquestração MLOps com Apache Airflow) já possui seus logs de S3 instanciados. Em breve, a orquestração das DAGs será acoplada.*
