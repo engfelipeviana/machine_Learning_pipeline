@@ -28,6 +28,7 @@ services:
       mc mb myminio/mlops-data || true;
       mc mb myminio/warehouse || true;
       mc mb myminio/landing-zone || true;
+      mc mb myminio/raw || true;
       mc mb myminio/mlflow-artifacts || true;
       mc mb myminio/airflow-logs || true;
       exit 0;
