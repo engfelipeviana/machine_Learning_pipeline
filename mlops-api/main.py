@@ -1,7 +1,7 @@
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Form
 from pydantic import BaseModel
 import mlflow
 import pandas as pd
@@ -71,16 +71,31 @@ def health_check():
     return {"status": status, "model_loaded": status == "healthy"}
 
 @app.post("/predict")
-async def predict_species(features: PenguinFeatures):
+async def predict_species(
+    ilha: str = Form(..., description="Ilha de Coleta (ex: torgersen, biscoe, dream)"),
+    bico_comp_mm: float = Form(..., description="Comprimento do bico em milímetros"),
+    bico_largura_mm: float = Form(..., description="Largura do bico em milímetros"),
+    nadadeira_comp_mm: float = Form(..., description="Comprimento da nadadeira em milímetros"),
+    masso_corporal_g: float = Form(..., description="Massa corporal total em gramas"),
+    sexo: str = Form(..., description="Sexo biologico do penguim (ex: macho, femea)")
+):
     model = app_state.get("model")
     if model is None:
-        raise HTTPException(status_code=503, detail="Modelo @Champion não está disponível na RAM. O MLflow pode estar inacessível.")
+        raise HTTPException(status_code=503, detail="Modelo @Champion não disponivel na RAM.")
     
     try:
-        # Cast transparente do Payload JSON para DataFrame (Para o Pickle entender a Transformação do Pipeline)
-        data_df = pd.DataFrame([features.dict()])
+        payload_dict = {
+            "ilha": ilha,
+            "bico_comp_mm": bico_comp_mm,
+            "bico_largura_mm": bico_largura_mm,
+            "nadadeira_comp_mm": nadadeira_comp_mm,
+            "masso_corporal_g": masso_corporal_g,
+            "sexo": sexo
+        }
+        # Cast transparente do Form para DataFrame
+        data_df = pd.DataFrame([payload_dict])
         
-        # O Scikit-Learn Pipeline executa OHE (One-Hot-Encoding) e Imputers automaticamente baseado nas matrizes congeladas da DAG 2
+        # Predição com o Pipeline do Scikit-Learn
         prediction = model.predict(data_df)
         
         return {"Especie Prevista": str(prediction[0])}
