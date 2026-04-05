@@ -18,13 +18,10 @@ from sklearn.metrics import f1_score
 from mlflow.client import MlflowClient
 
 def train_contract(contract_key):
-    # Airflow Env Binding for libraries inside Docker
-    os.environ["AWS_ACCESS_KEY_ID"] = "minioadmin"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "minioadmin"
-    os.environ["MLFLOW_S3_ENDPOINT_URL"] = "http://minio:9000"
-    mlflow.set_tracking_uri("http://mlflow-server:5000")
+    s3_endpoint = os.environ.get("MLFLOW_S3_ENDPOINT_URL", "http://minio:9000")
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow-server:5000"))
 
-    s3_client = boto3.client('s3', endpoint_url='http://minio:9000', aws_access_key_id='minioadmin', aws_secret_access_key='minioadmin', region_name='us-east-1')
+    s3_client = boto3.client('s3', endpoint_url=s3_endpoint, region_name='us-east-1')
 
     print(f"=== Worker Iniciado para Processar Pipeline: {contract_key} ===")
     response_yaml = s3_client.get_object(Bucket='model-contracts', Key=contract_key)
