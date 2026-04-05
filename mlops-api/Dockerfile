@@ -4,6 +4,7 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir \
     fastapi \
+    python-multipart \
     uvicorn \
     pydantic \
     mlflow==2.11.3 \
