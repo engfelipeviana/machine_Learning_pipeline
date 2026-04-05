@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
     # STARTUP
     logger.info("📡 Inicializando microserviço FastAPI e comunicando-se com MLflow...")
     
-    model_name = "penguins_classification_v1_model"
+    model_name = "penguins_classification_v1"
     alias = "Champion"
     
     try:
