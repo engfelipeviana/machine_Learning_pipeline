@@ -114,7 +114,7 @@ services:
     image: apache/airflow:2.9.1
     container_name: airflow-webserver
     ports:
-      - "8080:8080"
+      - "8088:8080"
     depends_on:
       - postgres
     environment:
