@@ -50,6 +50,11 @@ docker compose up -d --build
 Com os serviços rodando (`docker compose ps`), você poderá acessá-los através do seu navegador:
 
 - **JupyterLab:** Acesse diretamente [http://127.0.0.1:8888](http://127.0.0.1:8888) (ou `localhost:8888`). Não é mais necessário procurar por tokens, a IDE abrirá automaticamente conectada.
+  - **Navegador S3 Integrado:** No menu lateral esquerdo do JupyterLab, há um novo ícone de "Nuvem/Bucket" (`jupyterlab-s3-browser`). Clique nele e insira:
+    - *Endpoint*: `http://minio:9000`
+    - *Access Key*: `minioadmin`
+    - *Secret Key*: `minioadmin`
+    Isso permitirá navegar visualmente em todos os buckets do MinIO sem sair do Jupyter!
 
 - **Painel Web Trino:** Acesse [http://localhost:8081](http://localhost:8081).
   *(Faça login utilizando o usuário genérico `admin`, sem necessidade de senha)*.
