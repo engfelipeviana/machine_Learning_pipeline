@@ -21,6 +21,8 @@ services:
     container_name: minio-init
     depends_on:
       - minio
+    volumes:
+      - ./contratos:/contratos
     entrypoint: >
       /bin/sh -c "
       sleep 5;
@@ -32,6 +34,7 @@ services:
       mc mb myminio/mlflow-artifacts || true;
       mc mb myminio/airflow-logs || true;
       mc mb myminio/model-contracts || true;
+      mc cp --recursive /contratos/ myminio/model-contracts/ || true;
       exit 0;
       "
     networks:
@@ -110,13 +113,36 @@ services:
       - minio
       - trino
 
+  airflow-init:
+    image: apache/airflow:2.9.1
+    container_name: airflow-init
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://hive:hive@postgres:5432/airflow
+      - _PIP_ADDITIONAL_REQUIREMENTS=boto3 mlflow scikit-learn pyyaml pandas
+    user: "0:0"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: >
+      bash -c "
+      mkdir -p /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins &&
+      chown -R 50000:0 /opt/airflow &&
+      su -s /bin/bash airflow -c 'airflow db migrate && airflow users create -u admin -p admin -f Admin -l User -r Admin -e admin@example.com || true'
+      "
+    networks:
+      - mlops-net
+
   airflow-webserver:
     image: apache/airflow:2.9.1
     container_name: airflow-webserver
     ports:
       - "8088:8080"
     depends_on:
-      - postgres
+      airflow-init:
+        condition: service_completed_successfully
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://hive:hive@postgres:5432/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
@@ -126,12 +152,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
-    command: >
-      bash -c "
-      airflow db migrate &&
-      airflow users create -u admin -p admin -f Admin -l User -r Admin -e admin@example.com || true &&
-      airflow webserver
-      "
+    command: airflow webserver
     networks:
       - mlops-net
 
@@ -139,7 +160,8 @@ services:
     image: apache/airflow:2.9.1
     container_name: airflow-scheduler
     depends_on:
-      - airflow-webserver
+      airflow-init:
+        condition: service_completed_successfully
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://hive:hive@postgres:5432/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
