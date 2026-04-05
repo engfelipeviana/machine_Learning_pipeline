@@ -39,7 +39,7 @@ def process_raw(contract_key):
     print(f"[1] Extraindo {file_name} da {landing_bucket}...")
     df = pd.read_csv(io.BytesIO(s3_client.get_object(Bucket=landing_bucket, Key=file_name)['Body'].read()))
     
-    table_name = contract['metadata']['name'].replace('_model', '')
+    table_name = contract['data']['file_name'].replace('.csv', '')
     s3_path = f"s3://raw/{table_name}/{table_name}_data.parquet"
     
     print(f"[2] Convertendo brutos para Parquet ({s3_path})...")
@@ -55,7 +55,7 @@ def process_trusted(contract_key):
     print(f"=== [LAYER TRUSTED] Iniciado: {contract_key} ===")
     s3_client = get_boto_client()
     contract = yaml.safe_load(s3_client.get_object(Bucket='model-contracts', Key=contract_key)['Body'].read())
-    table_name = contract['metadata']['name'].replace('_model', '')
+    table_name = contract['data']['file_name'].replace('.csv', '')
     
     print(f"[1] Carregando parquet da Camada RAW via Trino...")
     trino_engine = create_engine('trino://jovyan@trino:8080/minio')
