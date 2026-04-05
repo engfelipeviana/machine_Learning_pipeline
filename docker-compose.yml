@@ -51,6 +51,27 @@ services:
     networks:
       - mlops-net
 
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.11.3
+    container_name: mlflow-server
+    ports:
+      - "5000:5000"
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - AWS_REGION=us-east-1
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://hive:hive@postgres:5432/metastore
+      --default-artifact-root s3://mlflow-artifacts/
+      --host 0.0.0.0
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - mlops-net
+
   trino:
     image: trinodb/trino:443
     container_name: trino
