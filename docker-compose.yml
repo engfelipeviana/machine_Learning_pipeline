@@ -31,6 +31,7 @@ services:
       mc mb myminio/warehouse || true;
       mc mb myminio/landing-zone || true;
       mc mb myminio/raw || true;
+      mc mb myminio/trusted || true;
       mc mb myminio/mlflow-artifacts || true;
       mc mb myminio/airflow-logs || true;
       mc mb myminio/model-contracts || true;
