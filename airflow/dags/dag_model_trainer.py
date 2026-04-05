@@ -116,11 +116,11 @@ def load_contracts_and_train():
                 print(f"F1 The Usurper (Acabou de Treinar): {f1}")
                 
                 if f1 > f1_campeao:
-                     print("🔥 O DESAFIANTE DERRUBOU O CAMPEAO! Deploy liberado para nova subida.")
+                     print("O DESAFIANTE DERRUBOU O CAMPEAO! Deploy liberado para nova subida.")
                      client.set_registered_model_alias(name=model_name, alias="Champion", version=model_details.version)
                      client.set_model_version_tag(name=model_name, version=model_details.version, key="Stage", value="Promoted-via-Airflow-DAG")
                 else:
-                     print("♻️ O modelo antigo era melhor. Este novo pipeline perderá espaço, apenas será arquivado mas não fará deploy na API.")
+                     print("O modelo antigo era melhor. Este novo pipeline perderá espaço, apenas será arquivado mas não fará deploy na API.")
                      client.set_registered_model_alias(name=model_name, alias="Challenger", version=model_details.version)
                      client.set_model_version_tag(name=model_name, version=model_details.version, key="Stage", value="Rejected-Bad-Score")
                      
