@@ -46,6 +46,6 @@ with DAG(
                 'MLFLOW_S3_ENDPOINT_URL': os.environ.get('MLFLOW_S3_ENDPOINT_URL', 'http://minio:9000'),
                 'MLFLOW_TRACKING_URI': os.environ.get('MLFLOW_TRACKING_URI', 'http://mlflow-server:5000')
             },
-            command=f"--contract {contract}",
+            command=f"python train.py --contract {contract}",
             mount_tmp_dir=False,
         )
