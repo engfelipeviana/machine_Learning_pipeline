@@ -120,14 +120,14 @@ services:
       - postgres
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://hive:hive@postgres:5432/airflow
-      - _PIP_ADDITIONAL_REQUIREMENTS=boto3 mlflow scikit-learn pyyaml pandas
     user: "0:0"
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+    entrypoint: /bin/bash
     command: >
-      bash -c "
+      -c "
       mkdir -p /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins &&
       chown -R 50000:0 /opt/airflow &&
       su -s /bin/bash airflow -c 'airflow db migrate && airflow users create -u admin -p admin -f Admin -l User -r Admin -e admin@example.com || true'
@@ -147,7 +147,7 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://hive:hive@postgres:5432/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - _PIP_ADDITIONAL_REQUIREMENTS=boto3 mlflow scikit-learn pyyaml pandas
+      - _PIP_ADDITIONAL_REQUIREMENTS=boto3 mlflow==2.11.3 scikit-learn pyyaml pandas
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -166,7 +166,7 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://hive:hive@postgres:5432/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - _PIP_ADDITIONAL_REQUIREMENTS=boto3 mlflow scikit-learn pyyaml pandas
+      - _PIP_ADDITIONAL_REQUIREMENTS=boto3 mlflow==2.11.3 scikit-learn pyyaml pandas
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
