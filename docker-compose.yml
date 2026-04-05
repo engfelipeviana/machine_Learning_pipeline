@@ -68,6 +68,7 @@ services:
     container_name: jupyterlab
     ports:
       - "8888:8888"
+    command: start-notebook.sh --ServerApp.token='' --ServerApp.password=''
     environment:
       - JUPYTER_ENABLE_LAB=yes
       - AWS_ACCESS_KEY_ID=minioadmin
