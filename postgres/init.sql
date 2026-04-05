@@ -15,3 +15,5 @@ CREATE TABLE IF NOT EXISTS iceberg_namespace_properties (
   property_value VARCHAR(1000),
   PRIMARY KEY (catalog_name, namespace, property_key)
 );
+
+CREATE DATABASE airflow;
