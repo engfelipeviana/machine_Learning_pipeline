@@ -85,8 +85,8 @@ def train_contract(contract_key):
             print(f"F1 The King (Atual Produção): {f1_campeao}")
             print(f"F1 The Usurper (Acabou de Treinar): {f1}")
             
-            if f1 > f1_campeao:
-                 print("O DESAFIANTE DERRUBOU O CAMPEAO! Deploy liberado para nova subida.")
+            if f1 >= f1_campeao:
+                 print("O DESAFIANTE EMPATOU OU DERRUBOU O CAMPEAO! Deploy liberado para nova subida.")
                  client.set_registered_model_alias(name=model_name, alias="Champion", version=model_details.version)
                  client.set_model_version_tag(name=model_name, version=model_details.version, key="Stage", value="Promoted-via-Airflow-Worker")
             else:
