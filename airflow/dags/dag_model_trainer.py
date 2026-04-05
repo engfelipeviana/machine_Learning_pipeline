@@ -12,7 +12,8 @@ default_args = {
 
 # O Scheduler varre o bucket ativamente para compilar o desenho visual da DAG
 try:
-    s3_client = boto3.client('s3', endpoint_url='http://minio:9000', aws_access_key_id='minioadmin', aws_secret_access_key='minioadmin', region_name='us-east-1')
+    s3_endpoint = os.environ.get('AWS_S3_ENDPOINT', 'http://minio:9000')
+    s3_client = boto3.client('s3', endpoint_url=s3_endpoint, region_name='us-east-1')
     contracts_response = s3_client.list_objects_v2(Bucket='model-contracts').get('Contents', [])
     contract_keys = [c['Key'] for c in contracts_response]
 except Exception as e:
@@ -39,6 +40,12 @@ with DAG(
             auto_remove=True,
             network_mode='mlops-net',
             docker_url='unix://var/run/docker.sock',
+            environment={
+                'AWS_ACCESS_KEY_ID': os.environ.get('AWS_ACCESS_KEY_ID', 'minioadmin'),
+                'AWS_SECRET_ACCESS_KEY': os.environ.get('AWS_SECRET_ACCESS_KEY', 'minioadmin'),
+                'MLFLOW_S3_ENDPOINT_URL': os.environ.get('MLFLOW_S3_ENDPOINT_URL', 'http://minio:9000'),
+                'MLFLOW_TRACKING_URI': os.environ.get('MLFLOW_TRACKING_URI', 'http://mlflow-server:5000')
+            },
             command=f"python train.py --contract {contract}",
             mount_tmp_dir=False,
         )
