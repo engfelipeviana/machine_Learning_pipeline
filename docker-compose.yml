@@ -27,7 +27,7 @@ services:
       mc alias set myminio http://minio:9000 minioadmin minioadmin;
       mc mb myminio/mlops-data || true;
       mc mb myminio/warehouse || true;
-      mc mb myminio/landing_zone || true;
+      mc mb myminio/landing-zone || true;
       exit 0;
       "
     networks:
