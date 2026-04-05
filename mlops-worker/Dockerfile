@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir \
     pyyaml \
     pandas \
     pyarrow \
-    evidently
+    evidently==0.4.38
 
 COPY train.py .
 COPY drift_monitor.py .
