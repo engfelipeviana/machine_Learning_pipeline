@@ -1,6 +1,5 @@
 import os
 import boto3
-import yaml
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from datetime import datetime, timedelta
@@ -22,29 +21,44 @@ except Exception as e:
 with DAG(
     'DAG_01_Data_Processing',
     default_args=default_args,
-    description='Pipeline ELT: Landing Zone (CSV) -> Raw (Parquet) -> Trusted (Iceberg)',
+    description='Medallion Pipeline ELT: Landing Zone -> Raw -> Trusted (Iceberg)',
     schedule_interval=timedelta(days=1),
     start_date=datetime(2025, 1, 1),
     catchup=False,
-    tags=['data-engineering', 'elt', 'iceberg'],
+    tags=['data-engineering', 'elt', 'medallion', 'iceberg'],
 ) as dag:
 
     for contract in contract_keys:
         task_id_name = contract.replace(".yaml", "").replace("-", "_")
         
-        # Reaproveitaremos a lógica do Docker-in-Docker, mas chamaremos o arquivo "process_data.py" em vez do treino!
-        DockerOperator(
-            task_id=f'process_raw_to_trusted_{task_id_name}',
+        env_vars = {
+            'AWS_ACCESS_KEY_ID': os.environ.get('AWS_ACCESS_KEY_ID', 'minioadmin'),
+            'AWS_SECRET_ACCESS_KEY': os.environ.get('AWS_SECRET_ACCESS_KEY', 'minioadmin'),
+            'AWS_S3_ENDPOINT': os.environ.get('AWS_S3_ENDPOINT', 'http://minio:9000'),
+        }
+
+        task_raw = DockerOperator(
+            task_id=f'landing_to_raw_{task_id_name}',
             image='worker-data:latest',
             api_version='auto',
             auto_remove=True,
             network_mode='mlops-net',
             docker_url='unix://var/run/docker.sock',
-            environment={
-                'AWS_ACCESS_KEY_ID': os.environ.get('AWS_ACCESS_KEY_ID', 'minioadmin'),
-                'AWS_SECRET_ACCESS_KEY': os.environ.get('AWS_SECRET_ACCESS_KEY', 'minioadmin'),
-                'MLFLOW_S3_ENDPOINT_URL': os.environ.get('MLFLOW_S3_ENDPOINT_URL', 'http://minio:9000'),
-            },
-            command=f"--contract {contract}",
+            environment=env_vars,
+            command=f"--layer raw --contract {contract}",
             mount_tmp_dir=False,
         )
+
+        task_trusted = DockerOperator(
+            task_id=f'raw_to_trusted_{task_id_name}',
+            image='worker-data:latest',
+            api_version='auto',
+            auto_remove=True,
+            network_mode='mlops-net',
+            docker_url='unix://var/run/docker.sock',
+            environment=env_vars,
+            command=f"--layer trusted --contract {contract}",
+            mount_tmp_dir=False,
+        )
+
+        task_raw >> task_trusted
