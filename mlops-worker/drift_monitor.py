@@ -6,7 +6,7 @@ import pandas as pd
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 
-print("🛡️ Bootstrapping Drift Monitoring Engine...")
+print("[INFO] Bootstrapping Drift Monitoring Engine...")
 
 s3_endpoint = os.environ.get("MLFLOW_S3_ENDPOINT_URL", "http://minio:9000")
 aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID", "minioadmin")
@@ -21,25 +21,25 @@ s3_client = boto3.client(
 )
 
 # 1. Carrega Contrato
-print("📜 Reading Model Contract...")
+print("[INFO] Reading Model Contract...")
 response_yaml = s3_client.get_object(Bucket='model-contracts', Key='penguins_contract.yaml')
 contract = yaml.safe_load(response_yaml['Body'].read())
 
 # 2. Reference Data (Original / Base)
 bucket_raw = contract['data']['bucket']
 file_name = contract['data']['file_name']
-print(f"📊 Pulling theoretical Reference Data from Landing Zone ({bucket_raw}/{file_name})...")
+print(f"[INFO] Pulling theoretical Reference Data from Landing Zone ({bucket_raw}/{file_name})...")
 resp_ref = s3_client.get_object(Bucket=bucket_raw, Key=file_name)
 reference_data = pd.read_csv(io.BytesIO(resp_ref['Body'].read())).dropna()
 
 # 3. Current Data (Amostragem de Produção limpa atual)
 table_name = file_name.replace('.csv', '')
-print(f"📈 Pulling Production DataFrame from Iceberg (trusted/{table_name}_trusted.parquet)...")
+print(f"[INFO] Pulling Production DataFrame from Iceberg (trusted/{table_name}_trusted.parquet)...")
 resp_curr = s3_client.get_object(Bucket='trusted', Key=f"{table_name}/{table_name}_trusted.parquet")
 current_data = pd.read_parquet(io.BytesIO(resp_curr['Body'].read()))
 
 # 4. Evidently Report Generation
-print("🧠 Executing Statistical Drift Models over Matrices (Kolmogorov-Smirnov & Wasserstein Distance)...")
+print("[INFO] Executing Statistical Drift Models over Matrices (Kolmogorov-Smirnov & Wasserstein Distance)...")
 report = Report(metrics=[DataDriftPreset()])
 report.run(reference_data=reference_data, current_data=current_data)
 
@@ -60,4 +60,4 @@ s3_client.put_object(
     ContentType='text/html'
 )
 
-print(f"✅ Drift Report HTML rendered and persisted to: s3://mlops-reports/{table_name}_drift_report_latest.html")
+print(f"[SUCCESS] Drift Report HTML rendered and persisted to: s3://mlops-reports/{table_name}_drift_report_latest.html")
