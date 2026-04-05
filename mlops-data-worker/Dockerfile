@@ -8,7 +8,8 @@ RUN pip install --no-cache-dir \
     s3fs \
     sqlalchemy \
     trino[sqlalchemy] \
-    pyyaml
+    pyyaml \
+    pyarrow
 
 COPY process_data.py .
 
