@@ -1,0 +1,52 @@
+# ============================================================
+# ML Pipeline Contract — Template Master v1
+# ============================================================
+# Crie cópias deste arquivo para padronizar os desenvolvimentos 
+# de novos modelos na esteira de MLOps.
+
+metadata:
+  name: <string> [ex: churn_prediction_v2]
+  version: <string> [ex: "2.1.0"]
+  description: <string>
+  owner: <string> [ex: squad-retention]
+  tags: [<list>] [ex: churn, classification, customer]
+  created_at: <YYYY-MM-DD>
+
+problem:
+  type: <binary_classification | multiclass_classification | regression>
+  objective: <maximize | minimize>
+  target_metric: <string> [ex: f1_score, auc_roc, rmse]
+
+# --- Dados brutos ---
+data:
+  source: <s3 | database>
+  bucket: <string> [ex: landing-zone]
+  file_name: <string> [ex: arquivo.csv]
+  splits:
+    train: 0.70
+    test: 0.30
+  split_strategy: <random | time_based>
+
+# --- Target ---
+label:
+  column: <string> [Nome da coluna]
+  positive_class: <int | string> [Opcional]
+
+# --- Features (Auto Sklearn.Pipeline) ---
+features:
+  - name: <string> [ex: idade_cliente]
+    dtype: <float | int | categorical>
+    transformations: [<list>] [ex: standard_scaler, log1p, minmax]
+    encoding: <string> [ex: onehot, label]
+    missing_strategy: <median | most_frequent | constant>
+
+# --- Modelo ---
+model:
+  algorithm: <string> [ex: decision_tree, random_forest, lightgbm]
+  framework: sklearn_api
+  hyperparameters:
+    <param_1>: <value_1>
+    <param_2>: <value_2>
+  training:
+    eval_metric: <string>
+    early_stopping_rounds: <int> [Opcional]
