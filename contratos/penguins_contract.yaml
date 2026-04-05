@@ -1,0 +1,63 @@
+# ============================================================
+# ML Pipeline Contract — Penguins Classification
+# ============================================================
+
+metadata:
+  name: penguins_classification_v1
+  version: "1.0.0"
+  description: Classifica especies de pinguins
+  owner: squad-data
+  tags: [penguins, classification, multi-class]
+  created_at: "2026-04-05"
+
+problem:
+  type: multiclass_classification
+  objective: maximize
+  target_metric: f1_score
+
+data:
+  source: s3
+  bucket: landing-zone
+  file_name: penguins.csv
+  splits:
+    train: 0.80
+    test: 0.20
+  split_strategy: random
+
+label:
+  column: especies
+
+features:
+  - name: ilha
+    dtype: categorical
+    encoding: onehot
+    missing_strategy: most_frequent
+  - name: bico_comp_mm
+    dtype: float
+    transformations: [standard_scaler]
+    missing_strategy: median
+  - name: bico_largura_mm
+    dtype: float
+    transformations: [standard_scaler]
+    missing_strategy: median
+  - name: nadadeira_comp_mm
+    dtype: float
+    transformations: [standard_scaler]
+    missing_strategy: median
+  - name: masso_corporal_g
+    dtype: float
+    transformations: [standard_scaler]
+    missing_strategy: median
+  - name: sexo
+    dtype: categorical
+    encoding: onehot
+    missing_strategy: most_frequent
+
+model:
+  algorithm: random_forest
+  framework: sklearn_api
+  hyperparameters:
+    n_estimators: 100
+    random_state: 42
+  training:
+    eval_metric: f1_score
