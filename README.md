@@ -14,17 +14,20 @@ git clone https://github.com/engfelipeviana/machine_Learning_pipeline.git
 cd machine_Learning_pipeline
 ```
 
-2. Inicialize a Nuvem da Infraestrutura e Build workers isolados:
+2. Inicialize a Infraestrutura e Automatize o Boot (Recomendado via Makefile):
+O repositório possui um `Makefile` configurado para automatizar builds local de workers Airflow DinD, inicializar o banco e logar automaticamente. No terminal da raiz, execute apenas:
 ```bash
-# Sobe os containers de rede raiz, bancos, Plataformas Airflow/MLflow e APIs
-docker compose up -d
-
-# Builda localmente as Imagens Master para os Workers Analíticos e de Computacao do Airflow
-docker compose build builder-data-worker
-docker compose build builder-mlops-worker
+make start
 ```
+*Isso irá construir internamente as Imagens Master, subir a Nuvem (Comando equivalente a `docker compose up -d`) e, após 15 segundos de aquecimento, **abrirá automaticamente todas as URLs abaixo no seu navegador padrão de abas!***
 
-3. Acesse os Endpoints Essenciais via localhost:
+Caso prefira o uso fragmentado para gerência manual, o `Makefile` oferece comandos individuais:
+- `make build`: Efetua apenas a construção das imagens.
+- `make up`: Apenas sobe os containers silenciados do ecossistema.
+- `make down`: Desliga ordenamente todo o cluster containerizado.
+- `make clean`: Destrói todo o cluster e limpa rigorosamente volumes residuais.
+
+3. Endpoints Essenciais (Abertos na Tela pelo "make open-browsers"):
 - Apache Airflow (Orquestrador UI): http://localhost:8088 (admin / admin)
 - MinIO S3 (Data Lake Console): http://localhost:9001 (minioadmin / minioadmin)
 - MLflow (Model Registry): http://localhost:5000
