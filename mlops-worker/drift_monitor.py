@@ -36,6 +36,9 @@ if 'ingestion_date' not in full_data.columns:
     reference_data = full_data
     current_data = full_data
 else:
+    # Trata dados legados da Fase 1 que não tinham data de ingestão (NaT)
+    full_data['ingestion_date'] = pd.to_datetime(full_data['ingestion_date']).fillna(pd.Timestamp("2000-01-01"))
+    
     # Separa Base Histórica (Tudo antes da ultima carga) vs Base Nova (Ultima Carga)
     full_data = full_data.sort_values(by='ingestion_date')
     dates = full_data['ingestion_date'].unique()
