@@ -1,5 +1,8 @@
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.operators.python import BranchPythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.operators.empty import EmptyOperator
 from datetime import datetime, timedelta
 
 default_args = {
@@ -11,6 +14,13 @@ default_args = {
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
 }
+
+def parse_drift_xcom(**context):
+    # Airflow captura o ultimo print do container docker
+    xcom_value = context['ti'].xcom_pull(task_ids='verify_statistical_data_drift')
+    if xcom_value and "DRIFT_DETECTED: TRUE" in xcom_value.upper():
+        return 'trigger_data_processing_and_retraining'
+    return 'end_monitoring'
 
 with DAG(
     'DAG_04_Drift_Monitor',
@@ -31,9 +41,28 @@ with DAG(
         network_mode='mlops-net',
         command='python drift_monitor.py',
         mount_tmp_dir=False,
+        do_xcom_push=True,
         environment={
             'MLFLOW_S3_ENDPOINT_URL': 'http://minio:9000',
             'AWS_ACCESS_KEY_ID': 'minioadmin',
             'AWS_SECRET_ACCESS_KEY': 'minioadmin'
         }
     )
+
+    branch_task = BranchPythonOperator(
+        task_id='check_drift_threshold',
+        python_callable=parse_drift_xcom,
+    )
+
+    # Automatically triggers Phase 1 which triggers Phase 2 natively if we stitch them,
+    # or just triggers Phase 1 straight up to consume the CSV.
+    # Note: To fully automate, DAG 1 should end by triggering DAG 2 (which is good practice).
+    trigger_retrain = TriggerDagRunOperator(
+        task_id='trigger_data_processing_and_retraining',
+        trigger_dag_id='DAG_01_Data_Processing',
+        wait_for_completion=False,
+    )
+
+    end = EmptyOperator(task_id='end_monitoring')
+
+    monitor_drift >> branch_task >> [trigger_retrain, end]

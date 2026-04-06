@@ -61,3 +61,15 @@ s3_client.put_object(
 )
 
 print(f"[SUCCESS] Drift Report HTML rendered and persisted to: s3://mlops-reports/{table_name}_drift_report_latest.html")
+
+# Auto-Trigger Analytics
+try:
+    report_dict = report.as_dict()
+    is_drifted = report_dict["metrics"][0]["result"]["dataset_drift"]
+    if is_drifted:
+        print("DRIFT_DETECTED: TRUE")
+    else:
+        print("DRIFT_DETECTED: FALSE")
+except Exception as e:
+    print(f"Error parsing Evildently JSON: {e}")
+    print("DRIFT_DETECTED: FALSE")
