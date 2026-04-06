@@ -33,6 +33,48 @@ docker compose build builder-mlops-worker
 
 ---
 
+## Execução Prática: Treinamento, Serving e API
+
+### 1. Como Executar o Treinamento do Modelo
+O treinamento ocorre de modo versionado e isolado, através do Apache Airflow e ambientes orquestrados DinD.
+1. Acesse a interface do Airflow: **http://localhost:8088** `(usuário: admin / senha: admin)`
+2. No painel de DAGs, localize e ative a rotina **`DAG 02: Model Trainer`**.
+3. Clique no botão de Play (Trigger DAG) para iniciar.
+4. O processo lerá as regras e treinará o modelo Scikit-Learn automaticamente, registrando os binários no MLflow como nossa versão **Champion** do momento.
+5. (Opcional) Acompanhe o ciclo de vida do seu modelo no [MLflow](http://localhost:5000).
+
+### 2. Como Servir o Modelo Treinado
+A API baseada no backend FastAPI cuida do serving. O serviço puxa em memória RAM (Single-Pass) o modelo associado ao alias `@Champion` no momento da subida do container.
+Para provisionar a infraestrutura e já subir o modelo para inferência:
+```bash
+# Inicie o container
+docker compose up -d mlops-api
+```
+*(Nota: Se houver um novo modelo treinado na Airflow DAG 02, force um reload para a API carregar as variáveis atualizadas para a RAM: `docker compose restart mlops-api`)*.
+
+### 3. Requisições na API e Swagger
+Existem duas formas de interagir com o modelo provido:
+
+**A. Usando o Swagger UI (Testes Locais):**
+1. Acesse: **http://localhost:8000/docs**
+2. Expanda a documentação da rota `POST /predict`.
+3. Clique no botão **"Try it out"**.
+4. Preencha o formulário HTML com os dados exigidos (`ilha`, `bico_comp_mm`, etc).
+5. Pressione "Execute" e aguarde o retorno da classe predita do pinguim em formato JSON.
+
+**B. Script HTTP cURL (Integração e Automação):**
+Se preferir, ou para debugar em background, encaminhe os dados estritamente via protocolo Form-Encoded:
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/predict' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'ilha=torgersen&bico_comp_mm=39.1&bico_largura_mm=18.7&nadadeira_comp_mm=181.0&masso_corporal_g=3750.0&sexo=macho'
+```
+*A resposta conterá a espécia prevista.*
+
+---
+
 ## Arquitetura Macro da Solucao
 
 O ecossistema divide-se em Ingestão Medallion, Orquestracao Docker-in-Docker (DinD), Registro Científico Controlado e Consumo API de Baixa Latência. A Máquina Airflow lidera a auto-manutenção da Inteligência Artificial.
