@@ -25,18 +25,31 @@ print("[INFO] Reading Model Contract...")
 response_yaml = s3_client.get_object(Bucket='model-contracts', Key='penguins_contract.yaml')
 contract = yaml.safe_load(response_yaml['Body'].read())
 
-# 2. Reference Data (Original / Base)
-bucket_raw = contract['data']['bucket']
-file_name = contract['data']['file_name']
-print(f"[INFO] Pulling theoretical Reference Data from Landing Zone ({bucket_raw}/{file_name})...")
-resp_ref = s3_client.get_object(Bucket=bucket_raw, Key=file_name)
-reference_data = pd.read_csv(io.BytesIO(resp_ref['Body'].read())).dropna()
-
-# 3. Current Data (Amostragem de Produção limpa atual)
-table_name = file_name.replace('.csv', '')
-print(f"[INFO] Pulling Production DataFrame from Iceberg (trusted/{table_name}_trusted.parquet)...")
+# 2 & 3. Consumindo Tudo da Trusted (Medallion Compartilhada)
+table_name = contract['data']['file_name'].replace('.csv', '')
+print(f"[INFO] Pulling Appended Production DataFrame from Iceberg (trusted/{table_name}_trusted.parquet)...")
 resp_curr = s3_client.get_object(Bucket='trusted', Key=f"{table_name}/{table_name}_trusted.parquet")
-current_data = pd.read_parquet(io.BytesIO(resp_curr['Body'].read()))
+full_data = pd.read_parquet(io.BytesIO(resp_curr['Body'].read()))
+
+if 'ingestion_date' not in full_data.columns:
+    print("[WARNING] Ingestion date metadata not found. Defaulting to full comparison.")
+    reference_data = full_data
+    current_data = full_data
+else:
+    # Separa Base Histórica (Tudo antes da ultima carga) vs Base Nova (Ultima Carga)
+    full_data = full_data.sort_values(by='ingestion_date')
+    dates = full_data['ingestion_date'].unique()
+    
+    if len(dates) > 1:
+        latest_date = dates[-1]
+        reference_data = full_data[full_data['ingestion_date'] != latest_date].drop(columns=['ingestion_date'])
+        current_data = full_data[full_data['ingestion_date'] == latest_date].drop(columns=['ingestion_date'])
+        print(f"[INFO] Temporal Splitting Sucessful. Reference Window: Historical. Current Window: {latest_date}")
+    else:
+        print("[WARNING] Only 1 ingestion window found. Cannot compute drift against history.")
+        reference_data = full_data.drop(columns=['ingestion_date'])
+        current_data = full_data.drop(columns=['ingestion_date'])
+
 
 # 4. Evidently Report Generation
 print("[INFO] Executing Statistical Drift Models over Matrices (Kolmogorov-Smirnov & Wasserstein Distance)...")
