@@ -50,6 +50,10 @@ else:
         reference_data = full_data.drop(columns=['ingestion_date'])
         current_data = full_data.drop(columns=['ingestion_date'])
 
+# Filter only the valid features recognized by the ML Model logic
+features_list = [f['name'] for f in contract['features']]
+reference_data = reference_data[features_list]
+current_data = current_data[features_list]
 
 # 4. Evidently Report Generation
 print("[INFO] Executing Statistical Drift Models over Matrices (Kolmogorov-Smirnov & Wasserstein Distance)...")
