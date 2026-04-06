@@ -21,7 +21,7 @@ except Exception as e:
     contract_keys = []
 
 with DAG(
-    'MLOps_DinD_Contract_Pipeline',
+    'DAG_02_Model_Trainer',
     default_args=default_args,
     description='Pipeline MLOps Corporativo terceirizando treino para Imagens Isoladas (DinD)',
     schedule_interval=timedelta(days=1),
@@ -46,6 +46,6 @@ with DAG(
                 'MLFLOW_S3_ENDPOINT_URL': os.environ.get('MLFLOW_S3_ENDPOINT_URL', 'http://minio:9000'),
                 'MLFLOW_TRACKING_URI': os.environ.get('MLFLOW_TRACKING_URI', 'http://mlflow-server:5000')
             },
-            command=f"--contract {contract}",
+            command=f"python train.py --contract {contract}",
             mount_tmp_dir=False,
         )

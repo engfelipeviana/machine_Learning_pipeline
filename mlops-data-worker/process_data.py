@@ -3,6 +3,7 @@ import boto3
 import pandas as pd
 import io
 import os
+from datetime import datetime
 import s3fs
 import yaml
 from sqlalchemy import create_engine, text
@@ -69,7 +70,16 @@ def process_trusted(contract_key):
     print(f"Qualidade: {tamanho_original - tamanho_curado} registros inválidos removidos.")
     
     s3_path = f"s3://trusted/{table_name}/{table_name}_trusted.parquet"
-    print(f"[3] Salvando parquets limpos na camada TRUSTED ({s3_path})...")
+    
+    df['ingestion_date'] = datetime.now()
+    try:
+        df_old = pd.read_parquet(s3_path, filesystem=get_s3fs())
+        df = pd.concat([df_old, df], ignore_index=True)
+        print(f"Append Realizado. O Iceberg agora possui {len(df)} registros acumulados no tempo.")
+    except Exception:
+        print("Criando primeiro snapshot da tabela Trusted.")
+
+    print(f"[3] Salvando parquets acumulados na camada TRUSTED ({s3_path})...")
     df.to_parquet(s3_path, filesystem=get_s3fs(), index=False)
     
     print(f"[4] Catalogando minio.trusted.{table_name} no Trino...")

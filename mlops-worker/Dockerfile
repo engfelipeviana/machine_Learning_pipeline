@@ -8,8 +8,8 @@ RUN pip install --no-cache-dir \
     scikit-learn \
     pyyaml \
     pandas \
-    pyarrow
+    pyarrow \
+    evidently==0.4.38
 
 COPY train.py .
-
-ENTRYPOINT ["python", "train.py"]
+COPY drift_monitor.py .
