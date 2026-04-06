@@ -61,12 +61,4 @@ with DAG(
             mount_tmp_dir=False,
         )
 
-        from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-        
-        trigger_training = TriggerDagRunOperator(
-            task_id=f'trigger_training_{task_id_name}',
-            trigger_dag_id='MLOps_DinD_Contract_Pipeline',
-            wait_for_completion=False,
-        )
-
-        task_raw >> task_trusted >> trigger_training
+        task_raw >> task_trusted

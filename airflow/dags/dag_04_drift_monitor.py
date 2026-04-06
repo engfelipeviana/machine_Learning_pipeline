@@ -19,7 +19,7 @@ def parse_drift_xcom(**context):
     # Airflow captura o ultimo print do container docker
     xcom_value = context['ti'].xcom_pull(task_ids='verify_statistical_data_drift')
     if xcom_value and "DRIFT_DETECTED: TRUE" in xcom_value.upper():
-        return 'trigger_data_processing_and_retraining'
+        return 'trigger_model_retraining'
     return 'end_monitoring'
 
 with DAG(
@@ -54,12 +54,9 @@ with DAG(
         python_callable=parse_drift_xcom,
     )
 
-    # Automatically triggers Phase 1 which triggers Phase 2 natively if we stitch them,
-    # or just triggers Phase 1 straight up to consume the CSV.
-    # Note: To fully automate, DAG 1 should end by triggering DAG 2 (which is good practice).
     trigger_retrain = TriggerDagRunOperator(
-        task_id='trigger_data_processing_and_retraining',
-        trigger_dag_id='DAG_01_Data_Processing',
+        task_id='trigger_model_retraining',
+        trigger_dag_id='MLOps_DinD_Contract_Pipeline',
         wait_for_completion=False,
     )
 
