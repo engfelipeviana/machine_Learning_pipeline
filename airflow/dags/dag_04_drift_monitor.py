@@ -56,7 +56,7 @@ with DAG(
 
     trigger_retrain = TriggerDagRunOperator(
         task_id='trigger_model_retraining',
-        trigger_dag_id='MLOps_DinD_Contract_Pipeline',
+        trigger_dag_id='DAG_02_Model_Trainer',
         wait_for_completion=False,
     )
 

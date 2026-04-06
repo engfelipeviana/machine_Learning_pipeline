@@ -21,7 +21,7 @@ except Exception as e:
     contract_keys = []
 
 with DAG(
-    'MLOps_DinD_Contract_Pipeline',
+    'DAG_02_Model_Trainer',
     default_args=default_args,
     description='Pipeline MLOps Corporativo terceirizando treino para Imagens Isoladas (DinD)',
     schedule_interval=timedelta(days=1),
