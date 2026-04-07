@@ -209,7 +209,7 @@ O servidor da API **trava o classificador físico na memória RAM** logo no mome
 
 Por consequência dessa retenção, quando a **DAG 02** do Airflow rodar novamente e eleger um modelo novo, **a API fica desatualizada, pois não fará pull imediato dessa atualização**.
 
-Para rearmar todos os caches aplicando um "Zero-Downtime Deploy", use diretamente o nosso acelerador nativo (Makefile):
+Para refazer o deploy aplicando um "Zero-Downtime Deploy", use diretamente o Makefile:
 ```bash
 make reload-api
 ```
