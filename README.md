@@ -240,3 +240,89 @@ graph TD
     PBO -- Condition Boolean TRUE --> Train[TriggerDagRun Call API: DAG 02 Model_Trainer]
     PBO -- Condition Boolean FALSE --> End[EmptyNode Finaliza Esteira]
 ```
+
+---
+
+## Correspondência de Arquitetura AWS
+
+A arquitetura 100% conteinerizada deste projeto de MLOps transita perfeitamente para um conjunto altamente escalável de componentes da infraestrutura **Amazon Web Services (AWS)**:
+
+- **Armazenamento e Data Lake:** O papel executado localmente pelo MinIO é uma abstração quase literal (usa a mesma API) do **Amazon S3**.
+- **Processamento de Dados (ELT):** Os containers efêmeros com Pandas são perfeitamente representados instanciando jobs no **AWS Glue** ou diretamente no **AWS ECS / Fargate**.
+- **Orquestração Sistêmica:** Toda a engenharia de agendamento baseada no Apache Airflow migra sem peso para o serviço gerenciado correspondente: o **Amazon MWAA**.
+- **Machine Learning e Drift:** O pipeline de modelagem e registro via MLflow migra para camadas de treino focadas no **Amazon SageMaker** (Training Jobs e Model Registry). O teste estocástico de drift ganha vida serverless no **SageMaker Model Monitor**.
+- **FastAPI / Serving Global:** O endpoint de model inference roda diretamente no **ECS Fargate** atrás do API Gateway, e para redução extrema da latência (Features Enrichment em ms), usa-se o **Amazon DynamoDB** acoplado via SageMaker atuando agilmente como *Online Feature Store*.
+- **Engine SQL:** As requisições ANSI pesadas e distribuídas executadas pelo Trino encontram compatibilidade de engine (Serverless) no **Amazon Athena**.
+- **Integração Severless (CI/CD):** A reconstrução das imagens das ferramentas e contêineres migra nativamente da execução manual (como o *Make*) para esteiras automatizadas do **AWS CodePipeline** aliado ao **AWS CodeBuild**.
+- **Deploy Avançado (Canary e Testes A/B):** O lançamento das versões Champion sem indisponibilidade utiliza roteamento de pesos (ex: 10% tráfego para Challenger, 90% Champion) gerido pelo **AWS CodeDeploy** injetado nativamente no API Gateway & Fargate, ou via roteamento dos próprios *Endpoint Variants* caso sirva a versão MLOps fechada direto no **Amazon SageMaker Endpoints**.
+```mermaid
+graph TD
+    %% AWS Pastel Colors - No Emojis
+    classDef awsStorage fill:#FCEFE1,stroke:#D88E30,stroke-width:2px,color:#333333
+    classDef awsCompute fill:#FAF3CD,stroke:#D1A109,stroke-width:2px,color:#333333
+    classDef awsAnalytics fill:#EAEAF2,stroke:#5568A6,stroke-width:2px,color:#333333
+    classDef awsML fill:#E8FAEF,stroke:#268770,stroke-width:2px,color:#333333
+    classDef awsMgmt fill:#FCE8ED,stroke:#C03965,stroke-width:2px,color:#333333
+
+    User([Engenharia de Dados]) --> MWAA
+    Client([Consumidores Externos]) --> APIGW
+
+    subgraph s3 [Amazon S3 Data Lake]
+        LZ[(Landing Zone)]:::awsStorage
+        Raw[(Raw Zone)]:::awsStorage
+        Trusted[(Offline Feature Store)]:::awsStorage
+        Contracts[(YAML Contracts)]:::awsStorage
+    end
+
+    subgraph analytics [AWS Analytics]
+        Athena[Amazon Athena]:::awsAnalytics
+    end
+
+    subgraph ml [Amazon Machine Learning]
+        SM_Train[SageMaker Training Jobs]:::awsML
+        SM_Registry[SageMaker Model Registry]:::awsML
+        SM_Monitor[SageMaker Model Monitor]:::awsML
+    end
+
+    subgraph eng [Data Engineering Workers]
+        Glue[AWS Glue ETL / ECS]:::awsAnalytics
+    end
+
+    subgraph serving [Model Serving API]
+        APIGW[ECS Fargate API Proxy]:::awsCompute
+        OnlineFS[(DynamoDB Online FS)]:::awsStorage
+    end
+
+    subgraph cicd [Automação e CI/CD]
+        Pipeline[AWS CodeBuild / Pipeline]:::awsMgmt
+        CDeploy[AWS CodeDeploy Routing]:::awsMgmt
+    end
+
+    MWAA[Amazon MWAA - Airflow]:::awsMgmt
+
+    MWAA --> DAG_01_ELT
+    DAG_01_ELT -.-> Glue
+    Glue --> LZ
+    Glue --> Raw
+    Glue --> Trusted
+    
+    MWAA --> DAG_02_Train
+    DAG_02_Train -.-> SM_Train
+    SM_Train --> Contracts
+    SM_Train --> Trusted
+    SM_Train --> SM_Registry
+
+    MWAA --> DAG_04_Drift
+    DAG_04_Drift -.-> SM_Monitor
+    SM_Monitor --> Trusted
+    SM_Monitor --> MWAA
+
+    Athena -.-> Trusted
+    
+    SM_Registry -.-> APIGW
+    OnlineFS -.-> APIGW
+
+    Pipeline -.->|Sincroniza DAGs via S3| MWAA
+    Pipeline -.->|Entrega Artefato| CDeploy
+    CDeploy -.->|Roteamento Canary e A/B| APIGW
+```
