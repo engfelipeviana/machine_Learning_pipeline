@@ -272,6 +272,7 @@ A arquitetura 100% conteinerizada deste projeto de MLOps transita perfeitamente 
 - **Engine SQL:** As requisições ANSI pesadas e distribuídas executadas pelo Trino encontram compatibilidade de engine (Serverless) no **Amazon Athena**.
 - **Integração Severless (CI/CD):** A reconstrução das imagens das ferramentas e contêineres migra nativamente da execução manual (como o *Make*) para esteiras automatizadas do **AWS CodePipeline** aliado ao **AWS CodeBuild**.
 - **Deploy Avançado (Canary e Testes A/B):** O lançamento das versões Champion sem indisponibilidade utiliza roteamento de pesos (ex: 10% tráfego para Challenger, 90% Champion) gerido pelo **AWS CodeDeploy** injetado nativamente no API Gateway & Fargate, ou via roteamento dos próprios *Endpoint Variants* caso sirva a versão MLOps fechada direto no **Amazon SageMaker Endpoints**.
+- **Segurança de Cofres e Credenciais:** Passwords sensíveis, chaves S3 e variáveis (`.env`) ganhariam criptografia. Suas leituras seriam injetadas automaticamente nas máquinas e microsserviços via **AWS Secrets Manager** ou usando o **AWS Systems Manager (SSM Parameter Store)**.
 ```mermaid
 graph TD
     %% AWS Pastel Colors - No Emojis
@@ -315,6 +316,10 @@ graph TD
         CDeploy[AWS CodeDeploy Routing]:::awsMgmt
     end
 
+    subgraph sec [Segurança e Compliance]
+        Secrets[AWS Secrets Manager / SSM]:::awsMgmt
+    end
+
     MWAA[Amazon MWAA - Airflow]:::awsMgmt
 
     MWAA --> DAG_01_ELT
@@ -342,4 +347,7 @@ graph TD
     Pipeline -.->|Sincroniza DAGs via S3| MWAA
     Pipeline -.->|Entrega Artefato| CDeploy
     CDeploy -.->|Roteamento Canary e A/B| APIGW
+
+    Secrets -.->|Injeção Oculta de DB Keys| MWAA
+    Secrets -.->|Injeção Oculta de Auth| APIGW
 ```
