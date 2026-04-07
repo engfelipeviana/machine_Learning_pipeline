@@ -40,6 +40,8 @@ Caso prefira o uso fragmentado para gerência manual, o `Makefile` oferece coman
 
 ### 1. Como Executar o Treinamento do Modelo
 O treinamento ocorre de modo versionado e isolado, através do Apache Airflow e ambientes orquestrados DinD.
+Dependência: para o treinamento ocorrer é necessário que a DAG 01 tenha sido executada com sucesso e que exista dados na camada Trusted do Data Lake. O contrato com os metadados deve estar de acordo com o arquivo contract.yaml, exemplo -> penguins_contract.yaml
+
 1. Acesse a interface do Airflow: **http://localhost:8088** `(usuário: admin / senha: admin)`
 2. No painel de DAGs, localize e ative a rotina **`DAG 02: Model Trainer`**.
 3. Clique no botão de Play (Trigger DAG) para iniciar.
@@ -47,7 +49,7 @@ O treinamento ocorre de modo versionado e isolado, através do Apache Airflow e 
 5. (Opcional) Acompanhe o ciclo de vida do seu modelo no [MLflow](http://localhost:5000).
 
 ### 2. Como Servir o Modelo Treinado
-A API baseada no backend FastAPI cuida do serving. O serviço puxa em memória RAM (Single-Pass) o modelo associado ao alias `@Champion` no momento da subida do container.
+A API em FastAPI é responsável pelo serving do modelo. O serviço recupera em memória RAM o modelo associado ao alias `@Champion` no momento da subida do container.
 Para provisionar a infraestrutura e já subir o modelo para inferência:
 ```bash
 # Inicie o container
