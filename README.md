@@ -32,7 +32,8 @@ Caso prefira o uso fragmentado para gerência manual, o `Makefile` oferece coman
 - MinIO S3 (Data Lake Console): http://localhost:9001 (minioadmin / minioadmin)
 - MLflow (Model Registry): http://localhost:5000
 - FastAPI (Inference Swagger UI): http://localhost:8000/docs
-- Trino / JupyterLab: http://localhost:8888
+- JupyterLab: http://localhost:8888
+- Trino: http://localhost:8081 (admin)
 
 ---
 
@@ -84,6 +85,16 @@ curl -X 'POST' \
 }'
 ```
 *A resposta conterá a espécia prevista.*
+
+### 4. Simulação de Dados e Teste de Concept Drift
+Para apoiar os testes práticos locais, foram disponibilizados arquivos nas pastas auxiliares **`sample_data/`** e **`template_contract/`**.
+- O diretório `template_contract/` armazena a estrutura base de metadados exigida pelas variáveis de treino da Orquestração DinD (como o `penguins_contract.yaml`).
+- **Data Ingestion Ouro (Linha Base):** Lembre-se, o ciclo inteiro depende que os dados estejam povoados. O primeiro passo é processar e carregar o arquivo sem drift `penguins.csv` efetuando o upload dele no bucket da **Landing Zone**.
+- **Forçando um Concept Drift (Degradação):** Para gerar um drift e testar a "DAG 04 (Drift Monitor)" atuando sobre drift:
+  1. Copie o pacote com drift nos dados `penguins drift.csv` da pasta `sample_data/`.
+  2. **Renomeie-o estruturalmente de volta para `penguins.csv`**.
+  3. Faça o upload no bucket da Landing Zone, processe com execução da DAG 01.
+  4. Quando os validadores KS do EvidentlyAI executarem, eles identificam a anomalia e disparam o retreino!
 
 ---
 
@@ -182,6 +193,9 @@ graph LR
 ```
 
 ### 3. Model Serving (FastAPI Real Time)
+> [!NOTE]
+> **Disclaimer de Arquitetura da API**: Por simplicidade e mitigação de atrito na subida do orquestrador Docker, optamos por não modularizar os scripts da API (criando pastas como `routers/`, `schemas/`, `services/`). Contudo, ressalta-se que **em ambientes de produção consolidados e repositórios adequados, essa estruturação de diretórios é a prática ideal** para alcançar manutenibilidade e escalabilidade.
+
 A esteira de MLOps continua até a exposição do modelo como Produto Global para o Ecossistema.
 
 - Fluxo Lógico: Um Servidor FastAPI ao iniciar imediatamente, ele acessa a base de dados do MLflow por API para encontrar os metadados do do modelo com a Tag da versao atual marcada como Champion. O endpoint baixa o os binários do modelo e os artefatos de pre processamento pra dentro da Memória RAM. 

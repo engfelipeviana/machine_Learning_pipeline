@@ -2,7 +2,8 @@ import os
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Form
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
 import mlflow
 import pandas as pd
 
@@ -10,13 +11,20 @@ import pandas as pd
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Resgatando chaves do Cluster Docker
-MLFLOW_S3_ENDPOINT_URL = os.environ.get('MLFLOW_S3_ENDPOINT_URL', "http://minio:9000")
-MLFLOW_TRACKING_URI = os.environ.get('MLFLOW_TRACKING_URI', "http://mlflow-server:5000")
-os.environ['AWS_ACCESS_KEY_ID'] = os.environ.get('AWS_ACCESS_KEY_ID', 'minioadmin')
-os.environ['AWS_SECRET_ACCESS_KEY'] = os.environ.get('AWS_SECRET_ACCESS_KEY', 'minioadmin')
+# Resgatando chaves do Cluster Docker com tipagem forte e validação (Pydantic Settings)
+class Settings(BaseSettings):
+    mlflow_s3_endpoint_url: str = "http://minio:9000"
+    mlflow_tracking_uri: str = "http://mlflow-server:5000"
+    aws_access_key_id: str = "minioadmin"
+    aws_secret_access_key: str = "minioadmin"
 
-mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+settings = Settings()
+
+os.environ['MLFLOW_S3_ENDPOINT_URL'] = settings.mlflow_s3_endpoint_url
+os.environ['AWS_ACCESS_KEY_ID'] = settings.aws_access_key_id
+os.environ['AWS_SECRET_ACCESS_KEY'] = settings.aws_secret_access_key
+
+mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
 
 # Dicionário de estado do backend para armazenar o Modelo Permanente (Single-Pass Load RAM)
 app_state = {}
@@ -70,7 +78,10 @@ def health_check():
     status = "healthy" if app_state.get("model") is not None else "degraded"
     return {"status": status, "model_loaded": status == "healthy"}
 
-@app.post("/predict")
+class PenguinResponse(BaseModel):
+    especie_prevista: str = Field(..., alias="Especie Prevista")
+
+@app.post("/predict", response_model=PenguinResponse)
 def predict_species(payload: PenguinFeatures):
     model = app_state.get("model")
     if model is None:
