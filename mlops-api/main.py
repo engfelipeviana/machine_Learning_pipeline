@@ -24,7 +24,7 @@ app_state = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # STARTUP
-    logger.info("📡 Inicializando microserviço FastAPI e comunicando-se com MLflow...")
+    logger.info("Inicializando microserviço FastAPI e comunicando-se com MLflow...")
     
     model_name = "penguins_classification_v1"
     alias = "Champion"
@@ -32,14 +32,14 @@ async def lifespan(app: FastAPI):
     try:
         # Resolve via MLflow native API o artefato exato escondido dentro da camada `@Champion`
         model_uri = f"models:/{model_name}@{alias}"
-        logger.info(f"💾 Baixando e injetando o modelo ({model_uri}) na Memória RAM...")
+        logger.info(f"Baixando e injetando o modelo ({model_uri}) na Memória RAM...")
         
         champion_model = mlflow.sklearn.load_model(model_uri)
         app_state["model"] = champion_model
-        logger.info("🚀 Modelo @Champion pronto para inferência assíncrona!")
+        logger.info("Modelo @Champion pronto para inferência assíncrona!")
         
     except Exception as e:
-        logger.error(f"❌ Falha crítica ao puxar o modelo: {str(e)}")
+        logger.error(f"Falha crítica ao puxar o modelo: {str(e)}")
         app_state["model"] = None
         
     yield
