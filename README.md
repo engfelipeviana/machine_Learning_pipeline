@@ -200,6 +200,11 @@ A esteira de MLOps continua até a exposição do modelo como Produto Global par
 
 - Fluxo Lógico: Um Servidor FastAPI ao iniciar imediatamente, ele acessa a base de dados do MLflow por API para encontrar os metadados do do modelo com a Tag da versao atual marcada como Champion. O endpoint baixa o os binários do modelo e os artefatos de pre processamento pra dentro da Memória RAM. 
 
+> [!WARNING]
+> **Hot Reload de Novos Modelos**: Devido à arquitetura robusta de Singleton no ciclo `lifespan`, o FastAPI trava o modelo diretamente na porta de CPU/RAM. Ele faz isso de propósito para garantir latência ultra-baixa de `1ms` e não fazer acessos onerosos ao MLflow/S3 a cada requisição HTTP de usuário. 
+> Por causa dessa alocação efusiva, se a DAG de treinamento do Airflow injetar um Champion mais recente, você **precisará** solicitar que o servidor ative e carregue isso da nuvem local reativando a aplicação (`SIMULANDO ZERO DOWNTIME DEPLOY`):
+> `docker compose restart fastapi-server`
+
 
 ```mermaid
 sequenceDiagram
