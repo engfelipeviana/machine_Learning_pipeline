@@ -272,7 +272,7 @@ A arquitetura 100% conteinerizada deste projeto de MLOps transita perfeitamente 
 - **Engine SQL:** As requisições ANSI pesadas e distribuídas executadas pelo Trino encontram compatibilidade de engine (Serverless) no **Amazon Athena**.
 - **Integração Severless (CI/CD):** A reconstrução das imagens das ferramentas e contêineres migra nativamente da execução manual (como o *Make*) para esteiras automatizadas do **AWS CodePipeline** aliado ao **AWS CodeBuild**.
 - **Deploy Avançado (Canary e Testes A/B):** O lançamento das versões Champion sem indisponibilidade utiliza roteamento de pesos (ex: 10% tráfego para Challenger, 90% Champion) gerido pelo **AWS CodeDeploy** injetado nativamente no API Gateway & Fargate, ou via roteamento dos próprios *Endpoint Variants* caso sirva a versão MLOps fechada direto no **Amazon SageMaker Endpoints**.
-- **Segurança de Cofres e Credenciais:** Passwords sensíveis, chaves S3 hardcoded e variáveis estáticas passadas soltas pelo Docker (`.env`) ganhariam criptografia robusta de nível militar. Suas leituras seriam injetadas automaticamente nas máquinas e microsserviços via **AWS Secrets Manager** ou usando o **AWS Systems Manager (SSM Parameter Store)**.
+- **Segurança de Cofres e Credenciais:** Passwords sensíveis, chaves S3 e variáveis (`.env`) ganhariam criptografia. Suas leituras seriam injetadas automaticamente nas máquinas e microsserviços via **AWS Secrets Manager** ou usando o **AWS Systems Manager (SSM Parameter Store)**.
 ```mermaid
 graph TD
     %% AWS Pastel Colors - No Emojis
