@@ -56,7 +56,7 @@ Para provisionar a infraestrutura e já subir o modelo para inferência:
 # Inicie o container
 docker compose up -d mlops-api
 ```
-*(Nota de Operação Avançada: Confira a nova seção visual de 🚨 Hot Reload no final deste documento para saber como injetar os novos pesos na memória da API usando o atalho `make reload-api` sem ter que buscar containers manualmente)*.
+*(Nota de Operação Avançada: Confira a nova seção visual de Hot Reload no final deste documento para saber como injetar os novos pesos na memória da API usando o atalho `make reload-api` sem ter que buscar containers manualmente)*.
 
 ### 3. Requisições na API e Swagger
 Existem duas formas de interagir com o modelo provido:
@@ -202,7 +202,7 @@ A esteira de MLOps continua até a exposição do modelo como Produto Global par
 
 ---
 
-### 🚨 Hot Reload de Novos Modelos (Deploy Simulado)
+### Hot Reload de Novos Modelos (Deploy Simulado)
 
 **Existe uma proteção de Alta Performance (padrão Singleton) ativa no ciclo `lifespan` do FastAPI.**
 O servidor da API **trava o classificador físico na memória RAM** logo no momento em que ele liga. Fazemos isso de propósito nas Arquiteturas de Serviço para garantir taxa de resposta rápida (`< 1ms` de I/O na máquina) e poupar requisições excessivas contra o S3 e o MLflow a cada nova *request* de um cliente frontend!
