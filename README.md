@@ -56,7 +56,7 @@ Para provisionar a infraestrutura e já subir o modelo para inferência:
 # Inicie o container
 docker compose up -d mlops-api
 ```
-*(Nota: Se houver um novo modelo treinado na Airflow DAG 02, pode ser necessário aplicar um force reload para a API carregar as variáveis atualizadas para a RAM: `docker compose restart mlops-api`)*.
+*(Nota de Operação Avançada: Confira a nova seção visual de 🚨 Hot Reload no final deste documento para saber como injetar os novos pesos na memória da API usando o atalho `make reload-api` sem ter que buscar containers manualmente)*.
 
 ### 3. Requisições na API e Swagger
 Existem duas formas de interagir com o modelo provido:
