@@ -64,17 +64,24 @@ Existem duas formas de interagir com o modelo provido:
 1. Acesse: **http://localhost:8000/docs**
 2. Expanda a documentação da rota `POST /predict`.
 3. Clique no botão **"Try it out"**.
-4. Preencha o formulário HTML com os dados exigidos (`ilha`, `bico_comp_mm`, etc).
+4. Preencha o dicionário JSON (Request Body) com os dados exigidos (`ilha`, `bico_comp_mm`, etc).
 5. Pressione "Execute" e aguarde o retorno da classe predita do pinguim em formato JSON.
 
 **B. Script HTTP cURL (Integração e Automação):**
-Se preferir, ou para debugar em background, encaminhe os dados estritamente via protocolo Form-Encoded:
+Se preferir, ou para debugar em background, encaminhe os dados estritamente via payload JSON:
 ```bash
 curl -X 'POST' \
   'http://localhost:8000/predict' \
   -H 'accept: application/json' \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  -d 'ilha=torgersen&bico_comp_mm=39.1&bico_largura_mm=18.7&nadadeira_comp_mm=181.0&masso_corporal_g=3750.0&sexo=macho'
+  -H 'Content-Type: application/json' \
+  -d '{
+  "ilha": "torgersen",
+  "bico_comp_mm": 39.1,
+  "bico_largura_mm": 18.7,
+  "nadadeira_comp_mm": 181.0,
+  "masso_corporal_g": 3750.0,
+  "sexo": "macho"
+}'
 ```
 *A resposta conterá a espécia prevista.*
 

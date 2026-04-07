@@ -71,27 +71,13 @@ def health_check():
     return {"status": status, "model_loaded": status == "healthy"}
 
 @app.post("/predict")
-async def predict_species(
-    ilha: str = Form(..., description="Ilha de Coleta (ex: torgersen, biscoe, dream)"),
-    bico_comp_mm: float = Form(..., description="Comprimento do bico em milímetros"),
-    bico_largura_mm: float = Form(..., description="Largura do bico em milímetros"),
-    nadadeira_comp_mm: float = Form(..., description="Comprimento da nadadeira em milímetros"),
-    masso_corporal_g: float = Form(..., description="Massa corporal total em gramas"),
-    sexo: str = Form(..., description="Sexo biologico do penguim (ex: macho, femea)")
-):
+def predict_species(payload: PenguinFeatures):
     model = app_state.get("model")
     if model is None:
         raise HTTPException(status_code=503, detail="Modelo @Champion não disponivel na RAM.")
     
     try:
-        payload_dict = {
-            "ilha": ilha,
-            "bico_comp_mm": bico_comp_mm,
-            "bico_largura_mm": bico_largura_mm,
-            "nadadeira_comp_mm": nadadeira_comp_mm,
-            "masso_corporal_g": masso_corporal_g,
-            "sexo": sexo
-        }
+        payload_dict = payload.model_dump()
         # Cast transparente do Form para DataFrame
         data_df = pd.DataFrame([payload_dict])
         
