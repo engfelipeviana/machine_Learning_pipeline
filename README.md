@@ -93,6 +93,8 @@ graph TD
         LZ[(Landing Zone)]
         Raw[(Raw Zone)]
         Trusted[(Trusted Iceberg)]
+        Contracts[(YAML Contracts)]
+        Artifacts[(Model Binaries)]
     end
 
     subgraph Computacao Cron
@@ -114,14 +116,17 @@ graph TD
     DW -->|ingestion_date Append| Trusted
     
     DAG2 --> MW
-    MW --> |Baixa Contrato YAML e Trusted Matriz| Trusted
+    MW --> |Baixa Contrato| Contracts
+    MW --> |Consome Matriz de Dados| Trusted
     MW --> |Registra versao Champions| MLF
+    MW --> |Salva Modelo Pickle| Artifacts
     
     DAG4 --> MW
     MW --> |Compara Timeline via Estatistica KS| Trusted
     MW -- Trigger MLOps XCom TRUE --> DAG2
     
-    MLF -. FastAPI Puxa RAM do S3 .-> FastAPI
+    MLF -. FastAPI resolve a tag Champion .-> FastAPI
+    Artifacts -. FastAPI puxa Modelo em RAM .-> FastAPI
 ```
 
 ---
