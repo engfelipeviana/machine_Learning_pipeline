@@ -205,9 +205,9 @@ A esteira de MLOps continua até a exposição do modelo como Produto Global par
 ### Hot Reload de Novos Modelos (Deploy Simulado)
 
 **Existe uma proteção de Alta Performance (padrão Singleton) ativa no ciclo `lifespan` do FastAPI.**
-O servidor da API **trava o classificador físico na memória RAM** logo no momento em que ele liga. Fazemos isso de propósito nas Arquiteturas de Serviço para garantir taxa de resposta rápida (`< 1ms` de I/O na máquina) e poupar requisições excessivas contra o S3 e o MLflow a cada nova *request* de um cliente frontend!
+O servidor da API **trava o classificador físico na memória RAM** logo no momento em que ele liga. Fazemos isso para garantir taxa de resposta rápida (`< 1ms` de I/O na máquina) e poupar requisições excessivas contra o S3 e o MLflow a cada nova *request* de um cliente.
 
-Por consequência dessa retenção otimizada, se a sua **DAG 02** do Airflow rodar nesse exato instante e eleger um modelo novinho em folha na nuvem, **a sua API antiga que já estava ativada não fará pull imediato dessa atualização**.
+Por consequência dessa retenção, quando a **DAG 02** do Airflow rodar novamente e eleger um modelo novo, **a API fica desatualizada, pois não fará pull imediato dessa atualização**.
 
 Para rearmar todos os caches aplicando um "Zero-Downtime Deploy", use diretamente o nosso acelerador nativo (Makefile):
 ```bash
