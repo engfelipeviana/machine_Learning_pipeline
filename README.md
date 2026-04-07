@@ -1,6 +1,6 @@
-# Self-Healing MLOps Platform (End-to-End)
+# MLOps Platform (End-to-End)
 
-Uma plataforma de Machine Learning Operations de nível corporativo, projetada em arquitetura de microsserviços, 100% conteinerizada (Docker), orientada a Data Contracts (YAML) e blindada por sistemas de Auto-Cura (Self-Healing) contra Data/Concept Drift.
+Plataforma de Machine Learning Operations, projetada em arquitetura de microsserviços, 100% conteinerizada (Docker), orientada a Data Contracts (YAML) com sistemas de Data/Concept Drift.
 
 ---
 
@@ -14,22 +14,87 @@ git clone https://github.com/engfelipeviana/machine_Learning_pipeline.git
 cd machine_Learning_pipeline
 ```
 
-2. Inicialize a Nuvem da Infraestrutura e Build workers isolados:
+2. Inicialize a Infraestrutura e Automatize o Boot (Recomendado via Makefile):
+O repositório possui um `Makefile` configurado para automatizar builds local de workers Airflow DinD, inicializar o banco e logar automaticamente. No terminal da raiz, execute apenas:
 ```bash
-# Sobe os containers de rede raiz, bancos, Plataformas Airflow/MLflow e APIs
-docker compose up -d
-
-# Builda localmente as Imagens Master para os Workers Analíticos e de Computacao do Airflow
-docker compose build builder-data-worker
-docker compose build builder-mlops-worker
+make start
 ```
+*Isso irá construir internamente as Imagens Master, subir a Nuvem (Comando equivalente a `docker compose up -d`) e, após 15 segundos de aquecimento, **abrirá automaticamente todas as URLs abaixo no seu navegador padrão de abas!***
 
-3. Acesse os Endpoints Essenciais via localhost:
+Caso prefira o uso fragmentado para gerência manual, o `Makefile` oferece comandos individuais:
+- `make build`: Efetua apenas a construção das imagens.
+- `make up`: Apenas sobe os containers silenciados do ecossistema.
+- `make down`: Desliga ordenamente todo o cluster containerizado.
+- `make clean`: Destrói todo o cluster e limpa rigorosamente volumes residuais.
+
+3. Endpoints Essenciais (Abertos na Tela pelo "make open-browsers"):
 - Apache Airflow (Orquestrador UI): http://localhost:8088 (admin / admin)
 - MinIO S3 (Data Lake Console): http://localhost:9001 (minioadmin / minioadmin)
 - MLflow (Model Registry): http://localhost:5000
 - FastAPI (Inference Swagger UI): http://localhost:8000/docs
-- Trino / JupyterLab: http://localhost:8888
+- JupyterLab: http://localhost:8888
+- Trino: http://localhost:8081 (admin)
+
+---
+
+## Execução Prática: Treinamento, Serving e API
+
+### 1. Como Executar o Treinamento do Modelo
+O treinamento ocorre de modo versionado e isolado, através do Apache Airflow e ambientes orquestrados DinD.
+Dependência: para o treinamento ocorrer é necessário que a DAG 01 tenha sido executada com sucesso e que exista dados na camada Trusted do Data Lake. O contrato com os metadados deve estar de acordo com o arquivo contract.yaml, exemplo -> penguins_contract.yaml
+
+1. Acesse a interface do Airflow: **http://localhost:8088** `(usuário: admin / senha: admin)`
+2. No painel de DAGs, localize e ative a rotina **`DAG 02: Model Trainer`**.
+3. Clique no botão de Play (Trigger DAG) para iniciar.
+4. O processo identifica as regras e treina o modelo Scikit-Learn automaticamente, registrando os binários no MLflow como nossa versão **Champion** do momento.
+5. (Opcional) Acompanhe o ciclo de vida do seu modelo no [MLflow](http://localhost:5000).
+
+### 2. Como Servir o Modelo Treinado
+A API em FastAPI é responsável pelo serving do modelo. O serviço recupera em memória RAM o modelo associado ao alias `@Champion` no momento da subida do container.
+Para provisionar a infraestrutura e já subir o modelo para inferência:
+```bash
+# Inicie o container
+docker compose up -d mlops-api
+```
+*(Nota: Se houver um novo modelo treinado na Airflow DAG 02, pode ser necessário aplicar um force reload para a API carregar as variáveis atualizadas para a RAM: `docker compose restart mlops-api`)*.
+
+### 3. Requisições na API e Swagger
+Existem duas formas de interagir com o modelo provido:
+
+**A. Usando o Swagger UI (Testes Locais):**
+1. Acesse: **http://localhost:8000/docs**
+2. Expanda a documentação da rota `POST /predict`.
+3. Clique no botão **"Try it out"**.
+4. Preencha o dicionário JSON (Request Body) com os dados exigidos (`ilha`, `bico_comp_mm`, etc).
+5. Pressione "Execute" e aguarde o retorno da classe predita do pinguim em formato JSON.
+
+**B. Script HTTP cURL (Integração e Automação):**
+Se preferir, ou para debugar em background, encaminhe os dados estritamente via payload JSON:
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/predict' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "ilha": "torgersen",
+  "bico_comp_mm": 39.1,
+  "bico_largura_mm": 18.7,
+  "nadadeira_comp_mm": 181.0,
+  "masso_corporal_g": 3750.0,
+  "sexo": "macho"
+}'
+```
+*A resposta conterá a espécia prevista.*
+
+### 4. Simulação de Dados e Teste de Concept Drift
+Para apoiar os testes práticos locais, foram disponibilizados arquivos nas pastas auxiliares **`sample_data/`** e **`template_contract/`**.
+- O diretório `template_contract/` armazena a estrutura base de metadados exigida pelas variáveis de treino da Orquestração DinD (como o `penguins_contract.yaml`).
+- **Data Ingestion Ouro (Linha Base):** Lembre-se, o ciclo inteiro depende que os dados estejam povoados. O primeiro passo é processar e carregar o arquivo sem drift `penguins.csv` efetuando o upload dele no bucket da **Landing Zone**.
+- **Forçando um Concept Drift (Degradação):** Para gerar um drift e testar a "DAG 04 (Drift Monitor)" atuando sobre drift:
+  1. Copie o pacote com drift nos dados `penguins drift.csv` da pasta `sample_data/`.
+  2. **Renomeie-o estruturalmente de volta para `penguins.csv`**.
+  3. Faça o upload no bucket da Landing Zone, processe com execução da DAG 01.
+  4. Quando os validadores KS do EvidentlyAI executarem, eles identificam a anomalia e disparam o retreino!
 
 ---
 
@@ -46,6 +111,8 @@ graph TD
         LZ[(Landing Zone)]
         Raw[(Raw Zone)]
         Trusted[(Trusted Iceberg)]
+        Contracts[(YAML Contracts)]
+        Artifacts[(Model Binaries)]
     end
 
     subgraph Computacao Cron
@@ -67,14 +134,17 @@ graph TD
     DW -->|ingestion_date Append| Trusted
     
     DAG2 --> MW
-    MW --> |Baixa Contrato YAML e Trusted Matriz| Trusted
+    MW --> |Baixa Contrato| Contracts
+    MW --> |Consome Matriz de Dados| Trusted
     MW --> |Registra versao Champions| MLF
+    MW --> |Salva Modelo Pickle| Artifacts
     
     DAG4 --> MW
     MW --> |Compara Timeline via Estatistica KS| Trusted
     MW -- Trigger MLOps XCom TRUE --> DAG2
     
-    MLF -. FastAPI Puxa RAM do S3 .-> FastAPI
+    MLF -. FastAPI resolve a tag Champion .-> FastAPI
+    Artifacts -. FastAPI puxa Modelo em RAM .-> FastAPI
 ```
 
 ---
@@ -82,10 +152,13 @@ graph TD
 ## Componentes da Arquitetura em Detalhes
 
 ### 1. Data Engineering (Pipeline ELT Medallion)
-A ingestão de dados atua sobre o modelo de camadas lógicas (Medallion Architecture) persistindo DataFrames físicos no S3, rastreados matematicamente via Particionamento Temporal.
+A ingestão de dados atua sobre o modelo de camadas lógicas (Medallion Architecture) persistindo DataFrames físicos no S3.
 
-- Fluxo Lógico: O arquivo cru chega na Landing Zone. A DAG 01 Airflow invoca um container Docker puro que higieniza e converte o dado para Parquet (Raw Zone). No ultimo salto, uma coluna sistêmica temporal ingestion_date e aplicada e o Delta/Append e soldado sobre a camada central Trusted Zone.
-- Norte Estratégico: Fornecer massas de dados governadas limpas pro time de Dados rodar Feature Engineering e Consultas ANSI SQL Pesadas, entregando aos Cientistas blocos padronizados de Inteligência Artificial.
+- **Fluxo Lógico / Processo ETL (Extract, Transform, Load):**
+  - **Extract (Extração):** O arquivo bruto (raw) nesse caso para fins de demostração é feito o upload manual para o bucket da landing zone, sendo recebido e mantido inalterado na Landing Zone do Data Lake estruturado no S3 (MinIO).
+  - **Transform (Transformação):** A DAG 01 do Airflow invoca um container Docker puro (Data Worker) que atua sobre o dado bruto. Nesta fase primeiramente a carga dos dados na camada raw eem format parquet (iceberg)
+  - **Load (Carga):** Na ultima tarefa ocorrem a higienização, tipagem correta, remoção de outliers e a conversão necessáira, uma coluna sistêmica temporal (`ingestion_date`) é adicionada para garantir a rastreabilidade, temos então a camada Trusted., finalizamos a persistência do DataFrame estruturado fazendo um Delta/Append sobre a camada central governada (Trusted Zone), pronta para consumo. Essa camada tambem pode ser considerada a feature store off line.
+- **Norte Estratégico:** Fornecer massas de dados governadas limpas pro time de Dados rodar Feature Engineering e Consultas.
 
 ```mermaid
 sequenceDiagram
@@ -104,10 +177,10 @@ sequenceDiagram
 ```
 
 ### 2. Contract-Driven ML Training (Orquestracao DinD)
-A pipeline defende e erradica o risco de Código Rígido do Cientista rodando local em laboratório. Todo o Treino é abstraído por Variáveis em um Arquivo passivo Genérico. Todo Treino roda em ambientes sub-virtuais isolados e que sofrem Auto-Destruicao assim que finalizados.
+A pipeline cria uma padronização do processo de desenvolvimento, treinamento e versionamento e deploy de modelos de Machine Learning. Todo o Treino é abstraído por Variáveis em um Arquivo Genérico. Todo Treino roda em ambientes efêmeros.
 
-- Fluxo Lógico: A DAG 02 do Airflow lê o arquivo penguins_contract.yaml. O processo chama o Socket do Docker da Máquina Servidora (DinD) pedindo pra levantar temporariamente a imagem worker-mlops. Variáveis do Contrato sao injetadas. Ele treina o Modelo Scikit Pipeline robusto local e aciona client nativo do MLflow. O binário Pickle sobe criptografado ao repositório unificado.
-- Norte Estratégico: Viabilizar escalabilidade. Ambientes Orquestradores Limpos. Pra testar Redes Neurais vs XGBoost num modelo novo, muda-se o contrato YAML sem ter que refatorar os Pythons base.
+- Fluxo Lógico: A DAG 02 do Airflow lê o arquivo penguins_contract.yaml. O processo chama o Docker do Servidor e sobe a imagem worker-mlops. Variáveis do Contrato sao injetadas. Ele treina o Modelo utilizando o framework sklearn com Pipeline local e aciona o client nativo do MLflow. O binário Pickle sobe para o repositório unificado.
+
 
 ```mermaid
 graph LR
@@ -120,10 +193,13 @@ graph LR
 ```
 
 ### 3. Model Serving (FastAPI Real Time)
-A fronteira da MLOps não termina onde o Treino acaba, mas sim como ele é Exposto como Produto Global pro Ecossistema.
+> [!NOTE]
+> **Disclaimer de Arquitetura da API**: Por simplicidade e mitigação de atrito na subida do orquestrador Docker, optamos por não modularizar os scripts da API (criando pastas como `routers/`, `schemas/`, `services/`). Contudo, ressalta-se que **em ambientes de produção consolidados e repositórios adequados, essa estruturação de diretórios é a prática ideal** para alcançar manutenibilidade e escalabilidade.
 
-- Fluxo Lógico: Um Servidor FastAPI inicia atrelando a um evento raiz Lifespan. Imediatamente, ele acessa o Banco Log SQL Postgre do MLflow por API para cacar via string Tag Qual a versao atual marcada como Champion. Após deduzir o Hash Key, o endpoint baixa o Parquet de lógicas treináveis pra dentro da Memória RAM. As Rotas abrem as portas de Inference.
-- Norte Estratégico: Entrega com Latência Baixa HTTP JSON ao Frontend e tolerância a quedas via Inversão Computacional de Despacho (O Cérebro S3 preenche o Modelo Local Instantaneamente na inicialização do serviço Cloud).
+A esteira de MLOps continua até a exposição do modelo como Produto Global para o Ecossistema.
+
+- Fluxo Lógico: Um Servidor FastAPI ao iniciar imediatamente, ele acessa a base de dados do MLflow por API para encontrar os metadados do do modelo com a Tag da versao atual marcada como Champion. O endpoint baixa o os binários do modelo e os artefatos de pre processamento pra dentro da Memória RAM. 
+
 
 ```mermaid
 sequenceDiagram
@@ -143,11 +219,9 @@ sequenceDiagram
     API-->>App: Traz Previsao Resposta 200 JSON
 ```
 
-### 4. Observabilidade Estocástica (Self-Healing MLOps)
-O Guardiao Definitivo e o propósito Central Operacional de ML Engineers (Fase 8): Garantir que Modelos envelhecam ativamente ou morram ao detectar Model Decay de maneira preemptiva. 
+### 4. Observabilidade Data Drift
 
-- Fluxo Lógico: A DAG 04 cronjob weekly roda silenciosamente pelo EvidentlyAI. Recorta as Geracoes Passadas Ouro (Ano 2000 Base) da Janela Recente do Lake Geracao Nova Corrompida (2026). As métricas Kolmogorov-Smirnov cruzam as matrizes e verificam desvios de P-value superior a 0.05. Se anomalias explodem na marca de 50 porcento, a Matemática dispara True de Regressão. A DAG 04 lanca um Branch Booleano e desvia o fluxo pra Acionar o Gatilho Direto de Auto-Cura. O Airflow Roda Retreinando a Placa Neural na Base Modificada automaticamente.
-- Norte Estratégico: Governanca Imutável. A Matéria dita o ritmo Evolutivo do software, tirando carga cerebral cara de Cientistas para ficarem rastreando Desempenho. Custos Caem, Performance é Self-Driving.
+- Fluxo Lógico: A DAG 04 executa o EvidentlyAI. comparando as distribuições estatísticas das variáveis entre o dataset de referência (base histórica) e o dataset de entrada (dados recentes). As métricas Kolmogorov-Smirnov cruzam as matrizes e verificam desvios de P-value superior a 0.05. Se anomalias explodem na marca de 50 porcento, flag True é enviada para o XCom. A DAG 04 aciona a DAG de treinamento (DAG 02) e o Airflow Roda Retreinando.
 
 ```mermaid
 graph TD
@@ -164,5 +238,91 @@ graph TD
     X --> PBO[AI BranchPythonOperator Routing]
     Y --> PBO
     PBO -- Condition Boolean TRUE --> Train[TriggerDagRun Call API: DAG 02 Model_Trainer]
-    PBO -- Condition Boolean FALSE --> End[EmptyNode Finaliza Esteira em Paz]
+    PBO -- Condition Boolean FALSE --> End[EmptyNode Finaliza Esteira]
+```
+
+---
+
+## Correspondência de Arquitetura AWS
+
+A arquitetura 100% conteinerizada deste projeto de MLOps transita perfeitamente para um conjunto altamente escalável de componentes da infraestrutura **Amazon Web Services (AWS)**:
+
+- **Armazenamento e Data Lake:** O papel executado localmente pelo MinIO é uma abstração quase literal (usa a mesma API) do **Amazon S3**.
+- **Processamento de Dados (ELT):** Os containers efêmeros com Pandas são perfeitamente representados instanciando jobs no **AWS Glue** ou diretamente no **AWS ECS / Fargate**.
+- **Orquestração Sistêmica:** Toda a engenharia de agendamento baseada no Apache Airflow migra sem peso para o serviço gerenciado correspondente: o **Amazon MWAA**.
+- **Machine Learning e Drift:** O pipeline de modelagem e registro via MLflow migra para camadas de treino focadas no **Amazon SageMaker** (Training Jobs e Model Registry). O teste estocástico de drift ganha vida serverless no **SageMaker Model Monitor**.
+- **FastAPI / Serving Global:** O endpoint de model inference roda diretamente no **ECS Fargate** atrás do API Gateway, e para redução extrema da latência (Features Enrichment em ms), usa-se o **Amazon DynamoDB** acoplado via SageMaker atuando agilmente como *Online Feature Store*.
+- **Engine SQL:** As requisições ANSI pesadas e distribuídas executadas pelo Trino encontram compatibilidade de engine (Serverless) no **Amazon Athena**.
+- **Integração Severless (CI/CD):** A reconstrução das imagens das ferramentas e contêineres migra nativamente da execução manual (como o *Make*) para esteiras automatizadas do **AWS CodePipeline** aliado ao **AWS CodeBuild**.
+- **Deploy Avançado (Canary e Testes A/B):** O lançamento das versões Champion sem indisponibilidade utiliza roteamento de pesos (ex: 10% tráfego para Challenger, 90% Champion) gerido pelo **AWS CodeDeploy** injetado nativamente no API Gateway & Fargate, ou via roteamento dos próprios *Endpoint Variants* caso sirva a versão MLOps fechada direto no **Amazon SageMaker Endpoints**.
+```mermaid
+graph TD
+    %% AWS Pastel Colors - No Emojis
+    classDef awsStorage fill:#FCEFE1,stroke:#D88E30,stroke-width:2px,color:#333333
+    classDef awsCompute fill:#FAF3CD,stroke:#D1A109,stroke-width:2px,color:#333333
+    classDef awsAnalytics fill:#EAEAF2,stroke:#5568A6,stroke-width:2px,color:#333333
+    classDef awsML fill:#E8FAEF,stroke:#268770,stroke-width:2px,color:#333333
+    classDef awsMgmt fill:#FCE8ED,stroke:#C03965,stroke-width:2px,color:#333333
+
+    User([Engenharia de Dados]) --> MWAA
+    Client([Consumidores Externos]) --> APIGW
+
+    subgraph s3 [Amazon S3 Data Lake]
+        LZ[(Landing Zone)]:::awsStorage
+        Raw[(Raw Zone)]:::awsStorage
+        Trusted[(Offline Feature Store)]:::awsStorage
+        Contracts[(YAML Contracts)]:::awsStorage
+    end
+
+    subgraph analytics [AWS Analytics]
+        Athena[Amazon Athena]:::awsAnalytics
+    end
+
+    subgraph ml [Amazon Machine Learning]
+        SM_Train[SageMaker Training Jobs]:::awsML
+        SM_Registry[SageMaker Model Registry]:::awsML
+        SM_Monitor[SageMaker Model Monitor]:::awsML
+    end
+
+    subgraph eng [Data Engineering Workers]
+        Glue[AWS Glue ETL / ECS]:::awsAnalytics
+    end
+
+    subgraph serving [Model Serving API]
+        APIGW[ECS Fargate API Proxy]:::awsCompute
+        OnlineFS[(DynamoDB Online FS)]:::awsStorage
+    end
+
+    subgraph cicd [Automação e CI/CD]
+        Pipeline[AWS CodeBuild / Pipeline]:::awsMgmt
+        CDeploy[AWS CodeDeploy Routing]:::awsMgmt
+    end
+
+    MWAA[Amazon MWAA - Airflow]:::awsMgmt
+
+    MWAA --> DAG_01_ELT
+    DAG_01_ELT -.-> Glue
+    Glue --> LZ
+    Glue --> Raw
+    Glue --> Trusted
+    
+    MWAA --> DAG_02_Train
+    DAG_02_Train -.-> SM_Train
+    SM_Train --> Contracts
+    SM_Train --> Trusted
+    SM_Train --> SM_Registry
+
+    MWAA --> DAG_04_Drift
+    DAG_04_Drift -.-> SM_Monitor
+    SM_Monitor --> Trusted
+    SM_Monitor --> MWAA
+
+    Athena -.-> Trusted
+    
+    SM_Registry -.-> APIGW
+    OnlineFS -.-> APIGW
+
+    Pipeline -.->|Sincroniza DAGs via S3| MWAA
+    Pipeline -.->|Entrega Artefato| CDeploy
+    CDeploy -.->|Roteamento Canary e A/B| APIGW
 ```
