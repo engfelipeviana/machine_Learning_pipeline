@@ -56,7 +56,7 @@ Para provisionar a infraestrutura e já subir o modelo para inferência:
 # Inicie o container
 docker compose up -d mlops-api
 ```
-*(Nota: Se houver um novo modelo treinado na Airflow DAG 02, pode ser necessário aplicar um force reload para a API carregar as variáveis atualizadas para a RAM: `docker compose restart mlops-api`)*.
+*(Nota: Confira a seção Hot Reload no final deste documento para saber como injetar os novos pesos na memória da API usando o atalho `make reload-api` sem ter que buscar containers manualmente)*.
 
 ### 3. Requisições na API e Swagger
 Existem duas formas de interagir com o modelo provido:
@@ -199,6 +199,23 @@ graph LR
 A esteira de MLOps continua até a exposição do modelo como Produto Global para o Ecossistema.
 
 - Fluxo Lógico: Um Servidor FastAPI ao iniciar imediatamente, ele acessa a base de dados do MLflow por API para encontrar os metadados do do modelo com a Tag da versao atual marcada como Champion. O endpoint baixa o os binários do modelo e os artefatos de pre processamento pra dentro da Memória RAM. 
+
+---
+
+### Hot Reload de Novos Modelos (Deploy Simulado)
+
+**Existe uma proteção de Alta Performance (padrão Singleton) ativa no ciclo `lifespan` do FastAPI.**
+O servidor da API **trava o classificador físico na memória RAM** logo no momento em que ele liga. Fazemos isso para garantir taxa de resposta rápida (`< 1ms` de I/O na máquina) e poupar requisições excessivas contra o S3 e o MLflow a cada nova *request* de um cliente.
+
+Por consequência dessa retenção, quando a **DAG 02** do Airflow rodar novamente e eleger um modelo novo, **a API fica desatualizada, pois não fará pull imediato dessa atualização**.
+
+Para refazer o deploy aplicando um "Zero-Downtime Deploy", use diretamente o Makefile:
+```bash
+make reload-api
+```
+*(Ele restringe e encabeça o restart atômico unicamente do recurso do `fastapi-server`, engatilhando o boot nativo do Lifespan e absorvendo o seu novo Pickle modelo Champion em segundos).*
+
+---
 
 
 ```mermaid

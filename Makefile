@@ -1,4 +1,4 @@
-.PHONY: setup build up open-browsers start down clean
+.PHONY: setup build up open-browsers start down clean reload-api
 
 setup: build up
 
@@ -31,3 +31,7 @@ down:
 clean:
 	@echo "Destruindo infraestrutura, redes orfãs e volumes de dados vitais..."
 	docker compose down -v --remove-orphans
+
+reload-api:
+	@echo "Simulando Zero-Downtime Deploy: reiniciando o servidor FastAPI para recarregar o novo modelo Champion..."
+	docker compose restart fastapi-server
