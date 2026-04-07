@@ -217,5 +217,5 @@ graph TD
     X --> PBO[AI BranchPythonOperator Routing]
     Y --> PBO
     PBO -- Condition Boolean TRUE --> Train[TriggerDagRun Call API: DAG 02 Model_Trainer]
-    PBO -- Condition Boolean FALSE --> End[EmptyNode Finaliza Esteira em Paz]
+    PBO -- Condition Boolean FALSE --> End[EmptyNode Finaliza Esteira]
 ```
