@@ -12,7 +12,7 @@ up:
 	docker compose up -d
 
 open-browsers:
-	@echo "Aguardando serviços darem boot (15 segundos)..."
+	@echo "Aguardar serviços iniciar, boot (15 segundos)..."
 	sleep 15
 	@echo "Abrindo URLs no navegador..."
 	xdg-open "http://localhost:8088" || true

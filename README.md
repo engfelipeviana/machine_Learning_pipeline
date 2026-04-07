@@ -1,6 +1,6 @@
-# Self-Healing MLOps Platform (End-to-End)
+# MLOps Platform (End-to-End)
 
-Uma plataforma de Machine Learning Operations de nível corporativo, projetada em arquitetura de microsserviços, 100% conteinerizada (Docker), orientada a Data Contracts (YAML) e blindada por sistemas de Auto-Cura (Self-Healing) contra Data/Concept Drift.
+Plataforma de Machine Learning Operations, projetada em arquitetura de microsserviços, 100% conteinerizada (Docker), orientada a Data Contracts (YAML) com sistemas de Data/Concept Drift.
 
 ---
 
@@ -43,7 +43,7 @@ O treinamento ocorre de modo versionado e isolado, através do Apache Airflow e 
 1. Acesse a interface do Airflow: **http://localhost:8088** `(usuário: admin / senha: admin)`
 2. No painel de DAGs, localize e ative a rotina **`DAG 02: Model Trainer`**.
 3. Clique no botão de Play (Trigger DAG) para iniciar.
-4. O processo lerá as regras e treinará o modelo Scikit-Learn automaticamente, registrando os binários no MLflow como nossa versão **Champion** do momento.
+4. O processo identifica as regras e treina o modelo Scikit-Learn automaticamente, registrando os binários no MLflow como nossa versão **Champion** do momento.
 5. (Opcional) Acompanhe o ciclo de vida do seu modelo no [MLflow](http://localhost:5000).
 
 ### 2. Como Servir o Modelo Treinado
@@ -53,7 +53,7 @@ Para provisionar a infraestrutura e já subir o modelo para inferência:
 # Inicie o container
 docker compose up -d mlops-api
 ```
-*(Nota: Se houver um novo modelo treinado na Airflow DAG 02, force um reload para a API carregar as variáveis atualizadas para a RAM: `docker compose restart mlops-api`)*.
+*(Nota: Se houver um novo modelo treinado na Airflow DAG 02, pode ser necessário aplicar um force reload para a API carregar as variáveis atualizadas para a RAM: `docker compose restart mlops-api`)*.
 
 ### 3. Requisições na API e Swagger
 Existem duas formas de interagir com o modelo provido:
@@ -127,10 +127,13 @@ graph TD
 ## Componentes da Arquitetura em Detalhes
 
 ### 1. Data Engineering (Pipeline ELT Medallion)
-A ingestão de dados atua sobre o modelo de camadas lógicas (Medallion Architecture) persistindo DataFrames físicos no S3, rastreados matematicamente via Particionamento Temporal.
+A ingestão de dados atua sobre o modelo de camadas lógicas (Medallion Architecture) persistindo DataFrames físicos no S3.
 
-- Fluxo Lógico: O arquivo cru chega na Landing Zone. A DAG 01 Airflow invoca um container Docker puro que higieniza e converte o dado para Parquet (Raw Zone). No ultimo salto, uma coluna sistêmica temporal ingestion_date e aplicada e o Delta/Append e soldado sobre a camada central Trusted Zone.
-- Norte Estratégico: Fornecer massas de dados governadas limpas pro time de Dados rodar Feature Engineering e Consultas ANSI SQL Pesadas, entregando aos Cientistas blocos padronizados de Inteligência Artificial.
+- **Fluxo Lógico / Processo ETL (Extract, Transform, Load):**
+  - **Extract (Extração):** O arquivo bruto (raw) nesse caso para fins de demostração é feito o upload manual para o bucket da landing zone, sendo recebido e mantido inalterado na Landing Zone do Data Lake estruturado no S3 (MinIO).
+  - **Transform (Transformação):** A DAG 01 do Airflow invoca um container Docker puro (Data Worker) que atua sobre o dado bruto. Nesta fase primeiramente a carga dos dados na camada raw eem format parquet (iceberg)
+  - **Load (Carga):** Na ultima tarefa ocorrem a higienização, tipagem correta, remoção de outliers e a conversão necessáira, uma coluna sistêmica temporal (`ingestion_date`) é adicionada para garantir a rastreabilidade, temos então a camada Trusted., finalizamos a persistência do DataFrame estruturado fazendo um Delta/Append sobre a camada central governada (Trusted Zone), pronta para consumo. Essa camada tambem pode ser considerada a feature store off line.
+- **Norte Estratégico:** Fornecer massas de dados governadas limpas pro time de Dados rodar Feature Engineering e Consultas.
 
 ```mermaid
 sequenceDiagram
@@ -149,10 +152,10 @@ sequenceDiagram
 ```
 
 ### 2. Contract-Driven ML Training (Orquestracao DinD)
-A pipeline defende e erradica o risco de Código Rígido do Cientista rodando local em laboratório. Todo o Treino é abstraído por Variáveis em um Arquivo passivo Genérico. Todo Treino roda em ambientes sub-virtuais isolados e que sofrem Auto-Destruicao assim que finalizados.
+A pipeline cria uma padronização do processo de desenvolvimento, treinamento e versionamento e deploy de modelos de Machine Learning. Todo o Treino é abstraído por Variáveis em um Arquivo Genérico. Todo Treino roda em ambientes efêmeros.
 
-- Fluxo Lógico: A DAG 02 do Airflow lê o arquivo penguins_contract.yaml. O processo chama o Socket do Docker da Máquina Servidora (DinD) pedindo pra levantar temporariamente a imagem worker-mlops. Variáveis do Contrato sao injetadas. Ele treina o Modelo Scikit Pipeline robusto local e aciona client nativo do MLflow. O binário Pickle sobe criptografado ao repositório unificado.
-- Norte Estratégico: Viabilizar escalabilidade. Ambientes Orquestradores Limpos. Pra testar Redes Neurais vs XGBoost num modelo novo, muda-se o contrato YAML sem ter que refatorar os Pythons base.
+- Fluxo Lógico: A DAG 02 do Airflow lê o arquivo penguins_contract.yaml. O processo chama o Docker do Servidor e sobe a imagem worker-mlops. Variáveis do Contrato sao injetadas. Ele treina o Modelo utilizando o framework sklearn com Pipeline local e aciona o client nativo do MLflow. O binário Pickle sobe para o repositório unificado.
+
 
 ```mermaid
 graph LR
@@ -165,10 +168,10 @@ graph LR
 ```
 
 ### 3. Model Serving (FastAPI Real Time)
-A fronteira da MLOps não termina onde o Treino acaba, mas sim como ele é Exposto como Produto Global pro Ecossistema.
+A esteira de MLOps continua até a exposição do modelo como Produto Global para o Ecossistema.
 
-- Fluxo Lógico: Um Servidor FastAPI inicia atrelando a um evento raiz Lifespan. Imediatamente, ele acessa o Banco Log SQL Postgre do MLflow por API para cacar via string Tag Qual a versao atual marcada como Champion. Após deduzir o Hash Key, o endpoint baixa o Parquet de lógicas treináveis pra dentro da Memória RAM. As Rotas abrem as portas de Inference.
-- Norte Estratégico: Entrega com Latência Baixa HTTP JSON ao Frontend e tolerância a quedas via Inversão Computacional de Despacho (O Cérebro S3 preenche o Modelo Local Instantaneamente na inicialização do serviço Cloud).
+- Fluxo Lógico: Um Servidor FastAPI ao iniciar imediatamente, ele acessa a base de dados do MLflow por API para encontrar os metadados do do modelo com a Tag da versao atual marcada como Champion. O endpoint baixa o os binários do modelo e os artefatos de pre processamento pra dentro da Memória RAM. 
+
 
 ```mermaid
 sequenceDiagram
@@ -188,11 +191,9 @@ sequenceDiagram
     API-->>App: Traz Previsao Resposta 200 JSON
 ```
 
-### 4. Observabilidade Estocástica (Self-Healing MLOps)
-O Guardiao Definitivo e o propósito Central Operacional de ML Engineers (Fase 8): Garantir que Modelos envelhecam ativamente ou morram ao detectar Model Decay de maneira preemptiva. 
+### 4. Observabilidade Data Drift
 
-- Fluxo Lógico: A DAG 04 cronjob weekly roda silenciosamente pelo EvidentlyAI. Recorta as Geracoes Passadas Ouro (Ano 2000 Base) da Janela Recente do Lake Geracao Nova Corrompida (2026). As métricas Kolmogorov-Smirnov cruzam as matrizes e verificam desvios de P-value superior a 0.05. Se anomalias explodem na marca de 50 porcento, a Matemática dispara True de Regressão. A DAG 04 lanca um Branch Booleano e desvia o fluxo pra Acionar o Gatilho Direto de Auto-Cura. O Airflow Roda Retreinando a Placa Neural na Base Modificada automaticamente.
-- Norte Estratégico: Governanca Imutável. A Matéria dita o ritmo Evolutivo do software, tirando carga cerebral cara de Cientistas para ficarem rastreando Desempenho. Custos Caem, Performance é Self-Driving.
+- Fluxo Lógico: A DAG 04 executa o EvidentlyAI. comparando as distribuições estatísticas das variáveis entre o dataset de referência (base histórica) e o dataset de entrada (dados recentes). As métricas Kolmogorov-Smirnov cruzam as matrizes e verificam desvios de P-value superior a 0.05. Se anomalias explodem na marca de 50 porcento, flag True é enviada para o XCom. A DAG 04 aciona a DAG de treinamento (DAG 02) e o Airflow Roda Retreinando.
 
 ```mermaid
 graph TD
