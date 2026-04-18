@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
     # STARTUP
     logger.info("Inicializando microserviço FastAPI e comunicando-se com MLflow...")
     
-    model_name = "penguins_classification_v1"
+    model_name = "insurance_regression_v1"
     alias = "Champion"
     
     try:
@@ -59,33 +59,33 @@ async def lifespan(app: FastAPI):
 # Rotas Web
 app = FastAPI(
     title="MLOps Prediction Engine API",
-    description="Endpoint assíncrono hiper-rápido para classificar solicitações via modelo Champion do Airflow.",
-    version="1.0.0",
+    description="Endpoint de inferência para prever o custo de seguro de saúde via modelo Champion do Airflow.",
+    version="2.0.0",
     lifespan=lifespan
 )
 
 # Validação rígida Pydantic dos features da RAW Layer
-class PenguinFeatures(BaseModel):
-    ilha: str
-    bico_comp_mm: float
-    bico_largura_mm: float
-    nadadeira_comp_mm: float
-    masso_corporal_g: float
-    sexo: str
+class InsuranceFeatures(BaseModel):
+    age: int
+    bmi: float
+    children: int
+    sex: str
+    smoker: str
+    region: str
 
 @app.get("/health")
 def health_check():
     status = "healthy" if app_state.get("model") is not None else "degraded"
     return {"status": status, "model_loaded": status == "healthy"}
 
-class PenguinResponse(BaseModel):
-    especie_prevista: str = Field(..., alias="Especie Prevista")
+class InsuranceResponse(BaseModel):
+    charges_predicted: float
 
-@app.post("/predict", response_model=PenguinResponse)
-def predict_species(payload: PenguinFeatures):
+@app.post("/predict", response_model=InsuranceResponse)
+def predict_charges(payload: InsuranceFeatures):
     model = app_state.get("model")
     if model is None:
-        raise HTTPException(status_code=503, detail="Modelo @Champion não disponivel na RAM.")
+        raise HTTPException(status_code=503, detail="Modelo @Champion não disponível na RAM.")
     
     try:
         payload_dict = payload.model_dump()
@@ -95,7 +95,7 @@ def predict_species(payload: PenguinFeatures):
         # Predição com o Pipeline do Scikit-Learn
         prediction = model.predict(data_df)
         
-        return {"Especie Prevista": str(prediction[0])}
+        return {"charges_predicted": float(prediction[0])}
         
     except Exception as e:
         logger.error(f"Erro em Predict: {e}")
