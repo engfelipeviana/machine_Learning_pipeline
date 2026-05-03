@@ -96,6 +96,25 @@ Para apoiar os testes práticos locais, foram disponibilizados arquivos nas past
   3. Faça o upload no bucket da Landing Zone, processe com execução da DAG 01.
   4. Quando os validadores KS do EvidentlyAI executarem, eles identificam a anomalia e disparam o retreino!
 
+### 5. Conectando ao MinIO pela Extensão do Jupyter (S3 Browser)
+
+Para explorar os buckets do MinIO diretamente pela interface visual do JupyterLab, você pode utilizar a extensão **S3 Object Storage Browser** (ícone de nuvem na barra lateral esquerda).
+
+Preencha as configurações de conexão da seguinte forma:
+
+* **Endpoint URL:** `http://minio:9000`
+* **Access Key ID:** `minioadmin`
+* **Secret Access Key:** `minioadmin`
+* **(Optional) Session Token:** *(deixe em branco)*
+
+Clique em **Connect** para visualizar seus buckets.
+
+> [!NOTE]
+> **Entendendo as Portas do MinIO:**
+> Dependendo do que você quer acessar, existem duas portas diferentes configuradas na arquitetura:
+> * **Porta 9000 $\rightarrow$ API (S3):** Usada por código, SDKs (`boto3`), clientes (`mc`) e integrações entre aplicações (como a extensão S3 Browser do Jupyter). Na rede interna do Docker o endereço é `http://minio:9000` e na sua máquina local é `http://localhost:9000`.
+> * **Porta 9001 $\rightarrow$ Console Web (Interface Gráfica):** Usada para acessar o painel administrativo do MinIO diretamente no seu navegador. Exemplo: `http://localhost:9001`.
+
 ---
 
 ## Arquitetura Macro da Solucao
