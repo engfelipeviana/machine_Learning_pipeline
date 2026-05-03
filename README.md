@@ -1,5 +1,7 @@
 # MLOps Platform (End-to-End)
 
+[🇺🇸 View in English (US)](README_en.md)
+
 Plataforma de Machine Learning Operations, projetada em arquitetura de microsserviços, 100% conteinerizada (Docker), orientada a Data Contracts (YAML) com sistemas de Data/Concept Drift.
 
 ---
